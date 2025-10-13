@@ -9,25 +9,6 @@ interface UserProfile {
   images: Array<{ url: string }>;
 }
 
-async function callApi() {
-  const res = await fetch('api/auth/login', {
-    method: 'GET', // または 'POST'など
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    // POST/PUTの場合はbodyにデータをJSON形式で含める
-    // body: JSON.stringify({ key: 'value' }), 
-  });
-
-  if (!res.ok) {
-    throw new Error('APIの呼び出しに失敗しました');
-  }
-
-  const data = await res.json();
-  
-}
-
-
 export default function Dashboard() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +22,7 @@ export default function Dashboard() {
   const handleLogin = () => {
     // window.location.href に設定することで、ブラウザがこのURLにアクセスし、
     // サーバーサイドの handler 関数を実行させることができます。
-    callApi();
+    window.location.href =  '/api/auth/login'
   };
 
   // 認証後のURLからトークンを抽出する（デモ目的）

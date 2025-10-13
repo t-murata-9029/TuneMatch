@@ -45,6 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const data = await response.json();
 
+  console.log(response)
   if (response.ok) {
     // 3. トークンをセッションやデータベースに保存
     // 🚨 注意: 本番環境では、トークンをセキュアなストレージ (セッション、DB) に保存してください。
