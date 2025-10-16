@@ -31,7 +31,6 @@ export default function Signup() {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log("フォーム送信データ:", formData);
         executeSignup(formData)
     }
 
@@ -95,8 +94,8 @@ export default function Signup() {
                     onChange={handleChange}
                     row // 横並びにする
                 >
-                    <FormControlLabel value="male" control={<Radio size="small" />} label="男性" />
-                    <FormControlLabel value="female" control={<Radio size="small" />} label="女性" />
+                    <FormControlLabel value="MALE" control={<Radio size="small" />} label="男性" />
+                    <FormControlLabel value="FEMALE" control={<Radio size="small" />} label="女性" />
                 </RadioGroup>
             </FormControl>
 
@@ -117,7 +116,6 @@ export default function Signup() {
                 />
             </FormControl>
 
-            {/* 送信ボタン */}
             <Button
                 type="submit"
                 variant="contained"

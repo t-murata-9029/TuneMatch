@@ -2,6 +2,8 @@ import { Typography } from "@mui/material";
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getCookie, deleteCookie } from 'cookies-next';
 import { cookies } from 'next/headers'; // next/headers からインポート
+import { createClient } from "@/lib/supabase.server";
+import { getUser } from "@/utils/supabase";
 
 //クエリパラメーター
 type Props = {
@@ -60,28 +62,33 @@ export default async function callback(props: Props, req: NextApiRequest, res: N
     const data = await response.json();
 
     if (response.ok) {
-    // 3. トークンをセッションやデータベースに保存
-    // 🚨 注意: 本番環境では、トークンをセキュアなストレージ (セッション、DB) に保存してください。
-    // クライアント側で直接扱うのは非推奨です。
-    // ここではデモのため、一旦メインページにリダイレクトし、クエリパラメータで渡す例を示します。
-    /*
-    return res.redirect('/dashboard?' + new URLSearchParams({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_in: data.expires_in,
-    }).toString());
-    */
-   return (
-        <>
-            <Typography>Spotify連携完了</Typography>
-        </>
-   );
+        // 3. トークンをセッションやデータベースに保存
+        // 🚨 注意: 本番環境では、トークンをセキュアなストレージ (セッション、DB) に保存してください。
+        // クライアント側で直接扱うのは非推奨です。
+        // ここではデモのため、一旦メインページにリダイレクトし、クエリパラメータで渡す例を示します。
+        /*
+        return res.redirect('/dashboard?' + new URLSearchParams({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          expires_in: data.expires_in,
+        }).toString());
+        */
 
-  } else {
-    return (
-        <>
-            <Typography>Spotify連携に失敗しました。</Typography>
-        </>
-    );
-  }
+        const supabase = createClient();
+        const user = await supabase.auth.getUser();
+        console.log(user);
+
+        return (
+            <>
+                <Typography>Spotify連携完了</Typography>
+            </>
+        );
+
+    } else {
+        return (
+            <>
+                <Typography>Spotify連携に失敗しました。</Typography>
+            </>
+        );
+    }
 }

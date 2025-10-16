@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/cliant";
+import { supabase } from "@/lib/supabase.cliant";
 import { SignupFormState } from "@/types/forms/auth";
 
 export async function executeSignup(formData: SignupFormState) {

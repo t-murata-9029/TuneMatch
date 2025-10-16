@@ -10,3 +10,11 @@ export interface SignupFormState {
   profile_text: string;
   gender: Gender;
 }
+
+/**
+ *  アカウントログインフォームの入力値に対応するインターフェース
+ */
+export interface LoginFormState {
+  email: string;
+  password: string;
+}
