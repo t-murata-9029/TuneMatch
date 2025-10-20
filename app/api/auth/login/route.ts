@@ -45,9 +45,8 @@
       }).toString();
     
       // 修正: Spotifyの正式な認証エンドポイントを使用
-      const authUrl = `https://accounts.spotify.com/authorize?${params}`; // 🌟 正しいURL
-      const authUrl2 = new URL("https://accounts.spotify.com/authorize") 
-      authUrl2.search = new URLSearchParams(params).toString();
+      const authUrl = new URL("https://accounts.spotify.com/authorize") 
+      authUrl.search = new URLSearchParams(params).toString();
       // 💡 リダイレクトの実行 (NextResponse.redirectを使用)
-      return NextResponse.redirect(authUrl2);
+      return NextResponse.redirect(authUrl);
     }
