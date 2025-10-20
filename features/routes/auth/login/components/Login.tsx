@@ -4,14 +4,18 @@ import { LoginFormState } from "@/types/forms/auth";
 import { Box, Button, FormControl, FormLabel, TextField, Typography } from "@mui/material";
 import { useState } from "react";
 import { executeLogin } from "../endpoints";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
+    // 初期化
     const initialFormState: LoginFormState = {
         email: '',
         password: '',
     }
 
+    const router = useRouter();
     const [formData, setFormData] = useState<LoginFormState>(initialFormState);
+    const [loginError, setLoginError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -21,9 +25,23 @@ export default function Login() {
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        // エラーをリセット
+        setLoginError(null)
+
         e.preventDefault();
-        executeLogin(formData)
+
+        try {
+            await executeLogin(formData)
+        } catch (error: unknown) {
+            setLoginError("メールアドレスまたはパスワードが違います。");
+        }
+
+        // ログイン時にエラーが無かったら画面遷移
+        if(loginError){
+            router.push('/dashboard');
+        }
+
     }
 
     return (
@@ -33,6 +51,7 @@ export default function Login() {
             sx={{ maxWidth: 400, margin: 'auto', padding: 3 }}
         >
             <Typography variant="h5" gutterBottom>ログイン</Typography>
+            {loginError && <Typography variant="inherit" style={{ color: 'red' }}>{loginError}</Typography>}
             <FormControl fullWidth margin="normal">
                 <FormLabel htmlFor="email-input">メールアドレス</FormLabel>
                 <TextField
