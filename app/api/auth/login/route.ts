@@ -1,7 +1,6 @@
     // app/api/auth/login/route.ts
     
     import { NextResponse } from 'next/server';
-    import type { NextRequest } from 'next/server';
     import { generateRandomString, generateCodeChallenge } from '@/utils/auth';
     import { cookies } from 'next/headers'; // App Routerではこれを使う
     
@@ -12,7 +11,7 @@
     const SCOPES = 'user-read-private user-read-email playlist-read-private';
     
     // 💡 認証開始はGETリクエストで行うのが一般的です
-    export async function GET(request: NextRequest) {
+    export async function GET() {
       // 環境変数のチェック
       if (!CLIENT_ID || !REDIRECT_URI) {
         // 500エラーを返す
