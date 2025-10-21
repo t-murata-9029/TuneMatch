@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase.cliant";
 import { LoginFormState } from "@/types/forms/auth";
 
 export async function executeLogin(formData: LoginFormState): Promise<void> {
@@ -7,14 +6,15 @@ export async function executeLogin(formData: LoginFormState): Promise<void> {
 
     // 非同期処理をそのまま実行
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-        if (error) {
-            throw error;
-        }
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+        })
     } catch (e) {
         throw e;
     }
+    return;
 };

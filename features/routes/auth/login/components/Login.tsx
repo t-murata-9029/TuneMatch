@@ -28,7 +28,6 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         // エラーをリセット
         setLoginError(null)
-
         e.preventDefault();
 
         try {
@@ -38,7 +37,7 @@ export default function Login() {
         }
 
         // ログイン時にエラーが無かったら画面遷移
-        if(loginError){
+        if(loginError === null){
             router.push('/dashboard');
         }
 

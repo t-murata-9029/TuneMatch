@@ -1,31 +1,35 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async getAll() {
-          return (await cookieStore).getAll()
+        getAll() {
+          return cookieStore.getAll()
         },
-        // ミドルウェアでセッションがリフレッシュされる場合、このsetAllは無視しても問題ありません。
-        // （ミドルウェアのセットアップが推奨されています）
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(async ({ name, value, options }) =>
-              (await cookieStore).set(name, value, options)
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
             )
-          } catch (e) {
-            // Server Componentから`setAll`が呼ばれた場合、
-            // cookies.set()は読み取り専用エラーを発生させます。
-            // ミドルウェアでセッションリフレッシュを処理する場合は無視します。
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
     }
   )
+}
+
+export async function getUser() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  return user
 }
