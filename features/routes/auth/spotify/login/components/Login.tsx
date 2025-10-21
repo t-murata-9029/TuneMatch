@@ -22,7 +22,7 @@ export default function Dashboard() {
   const handleLogin = () => {
     // window.location.href に設定することで、ブラウザがこのURLにアクセスし、
     // サーバーサイドの handler 関数を実行させることができます。
-    window.location.href =  '/api/auth/login'
+    window.location.href =  '/api/spotify/login'
   };
 
   // 認証後のURLからトークンを抽出する（デモ目的）
