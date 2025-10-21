@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { postReviewState } from '../../types/forms/review';
+import { supabase } from '../../../lib/supabase.cliant';
 
 export default function ReviewAnalysisPage() {
   const [aiText, setAiText] = useState('');
+  const hasRun = useRef(false);
 
   useEffect(() => {
+
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const reviewStr = sessionStorage.getItem('reviewData');
     if (!reviewStr) return;
 
@@ -40,9 +46,9 @@ export default function ReviewAnalysisPage() {
         body: JSON.stringify({ prompt: prompt }),
       });
 
-      const data = await res.json();
+      const gemini_data = await res.json();
 
-      const raw = data.text;
+      const raw = gemini_data.text;
 
       // 「```json」と「```」を除去
       const clean = raw.replace(/```json|```/g, '').trim();
@@ -63,10 +69,59 @@ export default function ReviewAnalysisPage() {
       const extracted_moods = parsed["10"];
       const extracted_keywords = parsed["11"];
 
-      console.log(extracted_genres);
+      let reviewId;
 
+      try {
+
+        const { data: responseData, error } = await supabase
+          .from('music_reviews')
+          .insert([
+            {
+              user_id: '607ecfc1-ec3e-4977-b467-efc7d0a5b1f8',
+              track_id: '0udpslNSUIbvaTujS5TL5p',
+              review_text: reviewData.review,
+              rating: reviewData.rating,
+              created_at: new Date().toISOString()
+            }
+          ])
+          .select();
+        if (error) console.error('Supabase insert error music_reviews', error);
+        else console.log(responseData);
+        reviewId = responseData![0].id;
+
+      } catch (err) {
+        console.error('Supabase insert failed music_reviews', err);
+      }
+
+      try {
+
+        const { data: responseData, error } = await supabase
+          .from('ai_analysis_results')
+          .insert([
+            {
+              review_id: reviewId,
+              focus_rhythm: rhythm,
+              focus_melody: melody,
+              focus_lyric: lyric,
+              focus_production: production,
+              emotional_intensity: intensity,
+              sentiment_positivity: sentiment_positivity,
+              sentiment_negativity: sentiment_negativity,
+              detail_level: detail_level,
+              extracted_genres: extracted_genres,
+              extracted_moods: extracted_moods,
+              extracted_keywords: extracted_keywords,
+              analysis_at: new Date().toISOString()
+            }
+          ])
+          .select();
+        if (error) console.error('Supabase insert error ai_analysis', error);
+        else console.log(responseData);
+      } catch (err) {
+        console.error('Supabase insert failed ai_analysis', err);
+      }
       // そのまま JSON として state にセット
-      setAiText(extracted_genres + extracted_moods + extracted_keywords);
+      setAiText('むーり');
     }
 
     callApi();

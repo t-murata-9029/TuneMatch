@@ -13,11 +13,7 @@
     "@google/generative-ai": "^0.24.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
-<<<<<<< HEAD
     "@supabase/supabase-js": "^2.75.1",
-=======
-    "@supabase/supabase-js": "^2.75.0",
->>>>>>> fd69be3070f8bf1473e1451da17952686b459269
     "cookies-next": "^6.1.0",
     "next": "15.5.4",
     "react": "19.1.0",
