@@ -32,13 +32,9 @@ export default function Login() {
 
         try {
             await executeLogin(formData)
+            router.push('/dashboard');
         } catch (error: unknown) {
             setLoginError("メールアドレスまたはパスワードが違います。");
-        }
-
-        // ログイン時にエラーが無かったら画面遷移
-        if(loginError === null){
-            router.push('/dashboard');
         }
 
     }

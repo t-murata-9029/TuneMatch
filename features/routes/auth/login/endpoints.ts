@@ -13,6 +13,10 @@ export async function executeLogin(formData: LoginFormState): Promise<void> {
             },
             body: JSON.stringify({ email, password }),
         })
+
+        if(!response.ok){
+            throw response;
+        }
     } catch (e) {
         throw e;
     }

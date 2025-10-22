@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCurrentUser } from '@/lib/action';
 import { createClient } from '@/lib/supabase.server';
-import { error } from 'console';
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -32,28 +31,15 @@ export async function GET(request: NextRequest) {
     if (!code || !state || state !== storedState || !codeVerifier) {
         console.error('Validation failed: State mismatch or missing parameters.');
 
-        // 💡 クリーンアップ (サーバーサイドのクッキー削除)
-        // クッキーを削除するには、有効期限を過去に設定してヘッダーにセットする
-        (await
-            // 💡 クリーンアップ (サーバーサイドのクッキー削除)
-            // クッキーを削除するには、有効期限を過去に設定してヘッダーにセットする
-            cookieStore).delete('spotify_auth_state');
+        (await cookieStore).delete('spotify_auth_state');
         (await cookieStore).delete('spotify_code_verifier');
 
         return NextResponse.redirect(new URL('/#' + new URLSearchParams({ error: 'validation_error' }).toString(), request.url));
     }
 
-    // --- 正常処理: トークン交換など ---
     try {
-        // ここで code と codeVerifier を使ってSpotify APIにアクセスし、
-        // アクセストークンとリフレッシュトークンを取得する処理を行う。
 
-        // 💡 成功したらクッキーをクリーンアップ
-        (await
-            // ここで code と codeVerifier を使ってSpotify APIにアクセスし、
-            // アクセストークンとリフレッシュトークンを取得する処理を行う。
-            // 💡 成功したらクッキーをクリーンアップ
-            cookieStore).delete('spotify_auth_state');
+        (await cookieStore).delete('spotify_auth_state');
         (await cookieStore).delete('spotify_code_verifier');
 
         /* トークンを取得 */
@@ -79,8 +65,6 @@ export async function GET(request: NextRequest) {
         /* レスポンスを取得 */
         const data = await response.json();
 
-        console.log(data)
-
         /* DBに保存 */
         const supabase = await createClient();
         const { data: updateData, error: updateError } = await supabase.from("users").update({
@@ -88,11 +72,7 @@ export async function GET(request: NextRequest) {
             spotify_refresh_token: data["refresh_token"],
         }).eq('id', user_id).select();
 
-        console.log("updateData:" + updateData)
-        console.log("updateError:" + updateError)
-
         return NextResponse.redirect(new URL('/dashboard', request.url));
-
     } catch (error) {
         console.error('Token exchange failed:', error);
         return NextResponse.redirect(new URL('/#' + new URLSearchParams({ error: 'token_exchange_failed' }).toString(), request.url));
