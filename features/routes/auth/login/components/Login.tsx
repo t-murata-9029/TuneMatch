@@ -36,7 +36,6 @@ export default function Login() {
         } catch (error: unknown) {
             setLoginError("メールアドレスまたはパスワードが違います。");
         }
-
     }
 
     return (

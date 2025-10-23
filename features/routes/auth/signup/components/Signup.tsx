@@ -4,6 +4,7 @@ import { SignupFormState } from "@/types/forms/auth";
 import { Box, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, TextField, Typography, Button } from "@mui/material";
 import { useState } from "react";
 import { executeSignup } from "../endpoints";
+import { useRouter } from "next/navigation";
 
 export default function Signup() {
 
@@ -16,8 +17,9 @@ export default function Signup() {
         gender: 'male',
     };
 
-    /* データ保存用 */
+    const router = useRouter();
     const [formData, setFormData] = useState<SignupFormState>(initialFormState);
+    const [signupError, setSignupError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -25,13 +27,17 @@ export default function Signup() {
             ...prev,
             [name]: value
         }));
-
-
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        executeSignup(formData)
+        try {
+            await executeSignup(formData)
+            router.push('verify-email?email='+formData.email);
+        } catch (error: unknown) {
+            setSignupError("入力内容に不備があります。");
+        }
+
     }
 
     return (
@@ -41,7 +47,7 @@ export default function Signup() {
             sx={{ maxWidth: 400, margin: 'auto', padding: 3 }}
         >
             <Typography variant="h5" gutterBottom>アカウント作成</Typography>
-
+            {signupError && <Typography variant="inherit" style={{ color: 'red' }}>{signupError}</Typography>}
             <FormControl fullWidth margin="normal">
                 <FormLabel htmlFor="email-input">メールアドレス</FormLabel>
                 <TextField

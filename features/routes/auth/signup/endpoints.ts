@@ -1,23 +1,26 @@
-import { supabase } from "@/lib/supabase.cliant";
 import { SignupFormState } from "@/types/forms/auth";
 
+/** サインアップを実行
+ * 引数をもとに、/api/auth/signupを呼び出して実行
+ * @param formData 
+ */
 export async function executeSignup(formData: SignupFormState) {
 
     const { email, password, username, profile_text, gender } = formData;
 
-    console.log(formData);
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: {
-                username,
-                profile_text,
-                gender,
+    try {
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback`, // 確認メールのリンク先
-        },
-    });
+            body: JSON.stringify({ email, password, username, profile_text, gender }),
+        })
 
-    console.log(error);
+        if(!response.ok){
+            throw response;
+        }
+    } catch (e) {
+        throw e;
+    }
 }
