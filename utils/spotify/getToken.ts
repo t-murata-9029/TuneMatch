@@ -11,7 +11,10 @@ export default async function getToken(){
             if (!response.ok) {
                 throw response;
             }
-            return response;   
+
+            const data = await response.json();
+            const token = data.token
+            return response;  
         } catch (e) {
             throw e;
         }
