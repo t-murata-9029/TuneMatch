@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { postReviewState } from '../../types/forms/review';
 import { supabase } from '../../../lib/supabase.cliant';
+import { getCurrentUser } from '@/lib/action';
 
 export default function ReviewAnalysisPage() {
   const [aiText, setAiText] = useState('');
@@ -71,13 +72,23 @@ export default function ReviewAnalysisPage() {
 
       let reviewId;
 
+      // userData取得
+      const userData = await getCurrentUser();
+
+      if (userData == null) {
+        return
+      }
+
+      //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
+      const user_id = userData.id;
+
       try {
 
         const { data: responseData, error } = await supabase
           .from('music_reviews')
           .insert([
             {
-              user_id: '607ecfc1-ec3e-4977-b467-efc7d0a5b1f8',
+              user_id: user_id,
               track_id: '0udpslNSUIbvaTujS5TL5p',
               review_text: reviewData.review,
               rating: reviewData.rating,

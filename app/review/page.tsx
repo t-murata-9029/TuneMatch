@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { postReviewState } from '../types/forms/review';
+import { getCurrentUser } from '@/lib/action';
+import { supabase } from '@/lib/supabase.cliant';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',
@@ -27,6 +29,70 @@ const labels: { [index: number]: string } = {
 function getLabelText(value: number) {
   return `${value} Star${value !== 1 ? 's' : ''}, ${labels[value]}`;
 }
+
+async function getMusic() {
+
+  // userData取得
+  const userData = await getCurrentUser();
+
+  if (userData == null) {
+    return
+  }
+
+  //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
+  const user_id = userData.id;
+
+  let spotify_access_token;
+
+  try {
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('spotify_access_token')
+      .eq('id', user_id)
+      .single()
+
+    if (error || !data) {
+      console.error('トークン取得失敗', error)
+      return
+    }
+
+    spotify_access_token = data.spotify_access_token;
+
+  } catch (err) {
+    console.error('Supabase select failed users', err);
+  }
+
+  console.log("acccesstoken:" + spotify_access_token);
+
+  /////////////////////////////////////////////////////////////////////
+
+  const query = 'UVERworld,EPIPHANY';
+
+  const type = 'album';
+
+  const limit = '3';
+
+  const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+
+  const result = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${spotify_access_token}`
+    }
+  }
+  )
+
+  const text = await result.text();
+  console.log('Spotify raw response:', text);
+
+  try {
+    const data = JSON.parse(text);
+    console.log('Parsed JSON:', data);
+  } catch (err) {
+    console.error('Not valid JSON:', text);
+  }
+}
+
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -59,6 +125,19 @@ export default function ReviewPage() {
     [prefersDarkMode]
   );
 
+  React.useEffect(() => {
+    const fetchMusic = async () => {
+      try {
+        await getMusic();
+      } catch (e) {
+        console.error('getMusic failed:', e);
+      }
+    };
+
+    fetchMusic();
+  }, []);
+
+
   const [text, setText] = React.useState('');
   const [rating, setRating] = React.useState<number | null>(2);
   const [hover, setHover] = React.useState(-1);
@@ -79,6 +158,7 @@ export default function ReviewPage() {
         <Box
           sx={{
             display: 'flex',
+            flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             minHeight: '100vh',
