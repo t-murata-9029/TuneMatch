@@ -9,9 +9,8 @@ export default async function ApiSample() {
     useEffect(() => {
         const gToken = async () => {
             const token = await getToken()
-            const data = await token.json();
-            console.log(data)
-            console.log(data.token)
+            
+            console.log(token)
         }
 
         gToken();
