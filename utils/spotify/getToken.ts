@@ -1,4 +1,5 @@
 'use client'
+
 /**
  * アプリに紐づいたSpotifyのトークンを取得する
  * @returns token
@@ -15,9 +16,7 @@ export default async function getToken(){
             if (!response.ok) {
                 throw response;
             }
-
             const data = await response.json();
-            
             return data.token;
         } catch (e) {
             throw e;
