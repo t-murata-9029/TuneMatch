@@ -15,12 +15,81 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { postSearchState } from '../types/forms/search';
-import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase.cliant';
+import { getCurrentUser } from '@/lib/action';
+
+async function getMusic() {
+
+    // userData取得
+    const userData = await getCurrentUser();
+
+    if (userData == null) {
+        return
+    }
+
+    //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
+    const user_id = userData.id;
+
+    let spotify_access_token;
+
+    try {
+
+        const { data, error } = await supabase
+            .from('users')
+            .select('spotify_access_token')
+            .eq('id', user_id)
+            .single()
+
+        if (error || !data) {
+            console.error('トークン取得失敗', error)
+            return
+        }
+
+        spotify_access_token = data.spotify_access_token;
+
+    } catch (err) {
+        console.error('Supabase select failed users', err);
+    }
+
+    console.log("acccesstoken:" + spotify_access_token);
+
+    /////////////////////////////////////////////////////////////////////
+
+    const dataJson = sessionStorage.getItem("queryData")
+
+    let data;
+
+    if (dataJson) {
+        data = JSON.parse(dataJson);
+    }
+
+    const query = data.query;
+
+    const type = data.type;
+
+    const limit = '3';
+
+    const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+
+    const result = await fetch(url, {
+        headers: {
+            Authorization: `Bearer ${spotify_access_token}`
+        }
+    }
+    )
+
+    const text = await result.text();
+    console.log('Spotify raw response:', text);
+
+    try {
+        const data = JSON.parse(text);
+        console.log('Parsed JSON:', data);
+    } catch (err) {
+        console.error('Not valid JSON:', text);
+    }
+}
 
 export default function page() {
-
-    const router = useRouter();
 
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
@@ -51,17 +120,17 @@ export default function page() {
         [prefersDarkMode]
     );
 
-    const [type, setType] = React.useState('');
-    const [query, setQuery] = React.useState('');
-
-    const handleSubmit = () => {
-        const queryData: postSearchState = {
-            type: type,
-            query: query
+    React.useEffect(() => {
+        const fetchMusic = async () => {
+            try {
+                await getMusic();
+            } catch (e) {
+                console.error('getMusic failed:', e);
+            }
         };
-        sessionStorage.setItem('queryData', JSON.stringify(queryData));
-        router.push('/search/track');
-    };
+
+        fetchMusic();
+    }, []);
 
     return (
         <NoSsr>
@@ -78,30 +147,13 @@ export default function page() {
                     }}
                 >
                     <FormGroup sx={{ mb: 6 }}>
-                        <RadioGroup
-                            row name="searchType"
-                            defaultValue="artist"
-                            value={type}
-                            onChange={(e) => setType(e.target.value)}>
+                        <RadioGroup row name="searchType" defaultValue="artist">
                             <FormControlLabel value="artist" control={<Radio />} label="アーティスト" />
                             <FormControlLabel value="album" control={<Radio />} label="アルバム" />
                             <FormControlLabel value="track" control={<Radio />} label="曲" />
                         </RadioGroup>
-                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                        <TextField
-                            id="outlined-basic"
-                            label="検索文字列"
-                            variant="outlined"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)} />
-                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                        <Button
-                            variant="outlined"
-                            onClick={handleSubmit}
-                            sx={{ width: 'auto', alignSelf: 'flex-end', px: 3, py: 1.5 }}
-                        >
-                            検索
-                        </Button>
+                        <Box sx={{ height: 16 }} />
+                        <TextField id="outlined-basic" label="検索文字列" variant="outlined" />
                     </FormGroup>
                 </Box>
             </ThemeProvider>
