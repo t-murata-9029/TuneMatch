@@ -23,3 +23,9 @@ export interface User {
    spotify_access_token?: string | null; // text
    spotify_refresh_token?: string | null; // text
 }
+
+export interface Spotify_app_token{
+  access_token: string;
+  expires_in: number;
+  created_at: Date;
+}
