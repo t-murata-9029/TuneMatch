@@ -1,15 +1,27 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { postReviewState } from '../../types/forms/review';
+import { postReviewState } from '../../../types/forms/review';
 import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
 import { constants } from 'buffer';
+import { Typography } from '@mui/material';
+
+//表示するデータ用
+interface aaa {
+  rhythm?: number,
+  melody?: number,
+  lyric?: number,
+  sentiment_positivity?: number,
+  sentiment_negativity?: number,
+}
 
 export default function ReviewAnalysisPage() {
   const [aiText, setAiText] = useState('');
   const hasRun = useRef(false);
+
+  const [reviewResult, setReviewResult] = useState<aaa>();
 
   const dataJson = sessionStorage.getItem('selectedItem');
   const selectMusic = dataJson ? JSON.parse(dataJson) : null;
@@ -267,8 +279,15 @@ export default function ReviewAnalysisPage() {
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
-      // そのまま JSON として state にセット
-      setAiText('');
+      const reviewData2: aaa = {
+        rhythm,
+        melody,
+        lyric,
+        sentiment_positivity,
+        sentiment_negativity,
+      }
+
+      setReviewResult(reviewData2);
     }
 
     callApi();
@@ -277,7 +296,11 @@ export default function ReviewAnalysisPage() {
   return (
     <div style={{ padding: 20 }}>
       <h1>受け取り画面</h1>
-      <pre>{aiText}</pre>
+      <Typography> 歌詞：{reviewResult?.lyric}</Typography>
+      <Typography> メロディー：{reviewResult?.melody}</Typography>
+      <Typography> リズム：{reviewResult?.rhythm}</Typography>
+      <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
+      <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
     </div>
   );
 }

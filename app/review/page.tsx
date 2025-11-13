@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
-import { postReviewState } from '../types/forms/review';
+import { postReviewState } from '../../types/forms/review';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',

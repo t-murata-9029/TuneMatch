@@ -15,7 +15,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { postSearchState } from '../types/forms/search';
+import { postSearchState } from '../../types/forms/search';
 import { useRouter } from 'next/navigation';
 
 export default function page() {
