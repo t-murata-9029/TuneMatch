@@ -4,10 +4,15 @@ import { useEffect, useState, useRef } from 'react';
 import { postReviewState } from '../../types/forms/review';
 import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
+import getToken from '@/utils/spotify/getToken';
+import { constants } from 'buffer';
 
 export default function ReviewAnalysisPage() {
   const [aiText, setAiText] = useState('');
   const hasRun = useRef(false);
+
+  const dataJson = sessionStorage.getItem('selectedItem');
+  const selectMusic = dataJson ? JSON.parse(dataJson) : null;
 
   useEffect(() => {
 
@@ -22,6 +27,8 @@ export default function ReviewAnalysisPage() {
     const prompt = `
     以下の文章を1~8の項目は0.00~1.00の100段階で評価してください。
     9~11の項目は文字列で評価してください
+    アーティスト："${selectMusic.artistName}"
+    曲："${selectMusic.trackName}"
     文章: "${reviewData.review}"
 
     1. rhythm: リズム
@@ -41,6 +48,7 @@ export default function ReviewAnalysisPage() {
     `
 
     async function callApi() {
+
       const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,6 +56,8 @@ export default function ReviewAnalysisPage() {
       });
 
       const gemini_data = await res.json();
+
+      console.log("res", res);
 
       const raw = gemini_data.text;
 
@@ -79,9 +89,134 @@ export default function ReviewAnalysisPage() {
         return
       }
 
-      //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
       const user_id = userData.id;
 
+      //アーティスト登録されているかチェック////////////////////////////////
+      let artistResult = false;
+
+      try {
+        const { count } = await supabase
+          .from('spotify_artists')
+          .select('*', { count: 'exact', head: true })
+          .eq('id', selectMusic.artistId)
+          .single();
+
+        artistResult = (count ?? 0) > 0;
+      } catch (err) {
+        console.error('アーティスト取得エラー:', err);
+      }
+
+      //アーティスト登録されていなかった場合
+      if (!artistResult) {
+
+        const spotify_access_token = await getToken();
+
+        const url = `https://api.spotify.com/v1/artists/${selectMusic.artistId}`;
+
+        const result = await fetch(url, {
+          headers: { Authorization: `Bearer ${spotify_access_token}` }
+        });
+
+        const resultJson = await result.json();
+        const artistImageUrl: string | undefined = resultJson.images[1]?.url ?? '';
+        const genres: string[] = resultJson.genres;
+
+        try {
+          await supabase
+            .from('spotify_artists')
+            .insert([
+              {
+                id: selectMusic.artistId,
+                name: selectMusic.artistName,
+                image_url: artistImageUrl,
+                genres: genres
+              }
+            ])
+
+        } catch (err) {
+          console.error('アーティスト登録時エラー：', err);
+        }
+      }
+      ///////////////////////////////////////////////////////////////////
+
+      //album登録されているかチェック//////////////////////////////////////
+
+      let albumResult = false;
+
+      try {
+        const { count } = await supabase
+          .from('spotify_album')
+          .select('*', { count: 'exact', head: true })
+          .eq('id', selectMusic.albumId)
+          .single();
+
+        artistResult = (count ?? 0) > 0;
+      } catch (err) {
+        console.error('アルバム取得エラー:', err);
+      }
+
+      //アルバム登録されていなかった場合
+      if (!albumResult) {
+
+        try {
+          await supabase
+            .from('spotify_album')
+            .insert([
+              {
+                id: selectMusic.albumId,
+                name: selectMusic.albumName,
+                image_url: selectMusic.albumImage,
+                release_date: selectMusic.albumReleaseDate,
+                total_tracks: selectMusic.albumTotalTracks,
+                artist_id: selectMusic.artistId
+              }
+            ])
+
+        } catch (err) {
+          console.error('アルバム登録時エラー：', err);
+        }
+      }
+      ///////////////////////////////////////////////////////////////////
+
+      //tracks登録されているかチェック//////////////////////////////////////
+
+      let tracksResult = false;
+
+      try {
+        const { count } = await supabase
+          .from('spotify_tracks')
+          .select('*', { count: 'exact', head: true })
+          .eq('id', selectMusic.trackId)
+          .single();
+
+        artistResult = (count ?? 0) > 0;
+      } catch (err) {
+        console.error('トラック取得エラー:', err);
+      }
+
+      //トラック登録されていなかった場合
+      if (!tracksResult) {
+
+        try {
+          await supabase
+            .from('spotify_tracks')
+            .insert([
+              {
+                id: selectMusic.trackId,
+                album_id: selectMusic.albumId,
+                name: selectMusic.trackName,
+                track_number: selectMusic.trackNumber,
+                duration_ms: selectMusic.durationMs,
+              }
+            ])
+
+        } catch (err) {
+          console.error('トラック登録時エラー：', err);
+        }
+      }
+      ///////////////////////////////////////////////////////////////////
+
+      //music_reviews登録
       try {
 
         const { data: responseData, error } = await supabase
@@ -89,7 +224,7 @@ export default function ReviewAnalysisPage() {
           .insert([
             {
               user_id: user_id,
-              track_id: '0udpslNSUIbvaTujS5TL5p',
+              track_id: selectMusic.trackId,
               review_text: reviewData.review,
               rating: reviewData.rating,
               created_at: new Date().toISOString()
@@ -126,13 +261,14 @@ export default function ReviewAnalysisPage() {
             }
           ])
           .select();
+
         if (error) console.error('Supabase insert error ai_analysis', error);
         else console.log(responseData);
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
       // そのまま JSON として state にセット
-      setAiText('むーり');
+      setAiText('');
     }
 
     callApi();

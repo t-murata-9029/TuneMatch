@@ -12,11 +12,10 @@ import {
   TextField,
   Rating,
   NoSsr,
+  Typography,
 } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { postReviewState } from '../types/forms/review';
-import { getCurrentUser } from '@/lib/action';
-import { supabase } from '@/lib/supabase.cliant';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',
@@ -30,75 +29,14 @@ function getLabelText(value: number) {
   return `${value} Star${value !== 1 ? 's' : ''}, ${labels[value]}`;
 }
 
-async function getMusic() {
-
-  // userData取得
-  const userData = await getCurrentUser();
-
-  if (userData == null) {
-    return
-  }
-
-  //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
-  const user_id = userData.id;
-
-  let spotify_access_token;
-
-  try {
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('spotify_access_token')
-      .eq('id', user_id)
-      .single()
-
-    if (error || !data) {
-      console.error('トークン取得失敗', error)
-      return
-    }
-
-    spotify_access_token = data.spotify_access_token;
-
-  } catch (err) {
-    console.error('Supabase select failed users', err);
-  }
-
-  console.log("acccesstoken:" + spotify_access_token);
-
-  /////////////////////////////////////////////////////////////////////
-
-  const query = 'UVERworld,EPIPHANY';
-
-  const type = 'album';
-
-  const limit = '3';
-
-  const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
-
-  const result = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${spotify_access_token}`
-    }
-  }
-  )
-
-  const text = await result.text();
-  console.log('Spotify raw response:', text);
-
-  try {
-    const data = JSON.parse(text);
-    console.log('Parsed JSON:', data);
-  } catch (err) {
-    console.error('Not valid JSON:', text);
-  }
-}
-
-
 export default function ReviewPage() {
+
+  const dataJson = sessionStorage.getItem('selectedItem');
+  const data = dataJson ? JSON.parse(dataJson) : null;
+
   const router = useRouter();
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
-  // 🔹 テーマ内で TextField の border スタイルを統一
   const theme = React.useMemo(
     () =>
       createTheme({
@@ -124,19 +62,6 @@ export default function ReviewPage() {
       }),
     [prefersDarkMode]
   );
-
-  React.useEffect(() => {
-    const fetchMusic = async () => {
-      try {
-        await getMusic();
-      } catch (e) {
-        console.error('getMusic failed:', e);
-      }
-    };
-
-    fetchMusic();
-  }, []);
-
 
   const [text, setText] = React.useState('');
   const [rating, setRating] = React.useState<number | null>(2);
@@ -166,7 +91,44 @@ export default function ReviewPage() {
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '80%', maxWidth: 500 }}>
-            <h2>レビュー投稿画面</h2>
+            <Typography variant="h5" fontWeight="bold">
+              {'レビュー投稿画面'}
+            </Typography>
+
+            {data && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Box
+                  sx={(theme) => ({
+                    width: 100,
+                    height: 100,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: `2px solid ${theme.palette.mode === 'dark' ? '#ffffff' : '#000000'
+                      }`,
+                    flexShrink: 0,
+                  })}
+                >
+                  <img
+                    src={data.albumImage || '/noimage.png'}
+                    alt="album image"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {data.trackName}
+                  </Typography>
+                  <Box sx={{ height: 8 }} /> {/*空白追加*/}
+                  <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
+                    {data.artistName}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
 
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Rating
@@ -187,7 +149,7 @@ export default function ReviewPage() {
               rows={4}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              sx={{ width: '100%' }} // 枠線はテーマに任せる
+              sx={{ width: '100%' }}
             />
 
             <Button
@@ -200,6 +162,6 @@ export default function ReviewPage() {
           </Box>
         </Box>
       </ThemeProvider>
-    </NoSsr>
+    </NoSsr >
   );
 }

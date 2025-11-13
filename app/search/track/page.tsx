@@ -2,98 +2,42 @@
 
 import {
     useMediaQuery,
-    Button,
-    TextField,
     Box,
     CssBaseline,
     NoSsr,
-    RadioGroup,
-    Radio,
+    Card,
+    CardContent,
+    CardMedia,
+    Typography,
+    Grid,
 } from '@mui/material';
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { supabase } from '@/lib/supabase.cliant';
-import { getCurrentUser } from '@/lib/action';
+import getToken from '@/utils/spotify/getToken';
+import { useRouter } from 'next/navigation';
+import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
 
-async function getMusic() {
+type item = {
+    artistId: string;
+    artistName: string;
+    albumId: string;
+    albumName: string;
+    albumImage: string;
+    albumReleaseDate: Timestamp;
+    albumTotalTracks: number;
+    trackId: string;
+    trackName: string;
+    trackNumber: number;
+    durationMs: number
+};
 
-    // userData取得
-    const userData = await getCurrentUser();
+export default function Page() {
+    const router = useRouter();
 
-    if (userData == null) {
-        return
-    }
-
-    //仮でユーザidから取得してる、でき次第書き換え(下の/連続まで)
-    const user_id = userData.id;
-
-    let spotify_access_token;
-
-    try {
-
-        const { data, error } = await supabase
-            .from('users')
-            .select('spotify_access_token')
-            .eq('id', user_id)
-            .single()
-
-        if (error || !data) {
-            console.error('トークン取得失敗', error)
-            return
-        }
-
-        spotify_access_token = data.spotify_access_token;
-
-    } catch (err) {
-        console.error('Supabase select failed users', err);
-    }
-
-    console.log("acccesstoken:" + spotify_access_token);
-
-    /////////////////////////////////////////////////////////////////////
-
-    const dataJson = sessionStorage.getItem("queryData")
-
-    let data;
-
-    if (dataJson) {
-        data = JSON.parse(dataJson);
-    }
-
-    const query = data.query;
-
-    const type = data.type;
-
-    const limit = '3';
-
-    const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
-
-    const result = await fetch(url, {
-        headers: {
-            Authorization: `Bearer ${spotify_access_token}`
-        }
-    }
-    )
-
-    const text = await result.text();
-    console.log('Spotify raw response:', text);
-
-    try {
-        const data = JSON.parse(text);
-        console.log('Parsed JSON:', data);
-    } catch (err) {
-        console.error('Not valid JSON:', text);
-    }
-}
-
-export default function page() {
-
+    const [results, setResults] = React.useState<item[]>([]);
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
-    // 🔹 テーマ内で TextField の border スタイルを統一
+    // 🔹 テーマ
     const theme = React.useMemo(
         () =>
             createTheme({
@@ -120,17 +64,71 @@ export default function page() {
         [prefersDarkMode]
     );
 
+    // 🔹 Spotify API 取得関数
+    async function getMusic(): Promise<item[]> {
+        const spotify_access_token = await getToken();
+        const dataJson = sessionStorage.getItem("queryData");
+        if (!dataJson) return [];
+
+        const data = JSON.parse(dataJson);
+        const query = data.query;
+        const type = data.type;
+        const limit = '3';
+        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+
+        const result = await fetch(url, {
+            headers: { Authorization: `Bearer ${spotify_access_token}` }
+        });
+
+        const json = await result.json();
+        let items: item[] = [];
+
+        if (type === 'artist' && json.artists?.items) {
+            items = json.artists.items.map((a: any) => ({
+                image: a.images[0]?.url ?? '',
+                trackName: a.name
+            }));
+        } else if (type === 'track' && json.tracks?.items) {
+            items = json.tracks.items.map((t: any) => ({
+                artistId: t.artists[0].id,
+                artistName: t.artists[0].name,
+                albumId: t.album.id,
+                albumName: t.album.name,
+                albumImage: t.album.images[1].url,
+                albumReleaseDate: t.album.release_date,
+                albumTotalTracks: t.album.total_tracks,
+                trackId: t.id,
+                trackName: t.name,
+                trackNumber: t.track_number,
+                durationMs: t.duration_ms,
+            }));
+        } else if (type === 'album' && json.albums?.items) {
+            items = json.albums.items.map((a: any) => ({
+                image: a.images[0]?.url ?? '',
+                trackName: a.name
+            }));
+        }
+
+        return items;
+    }
+
+    // 🔹 useEffect で初回取得
     React.useEffect(() => {
         const fetchMusic = async () => {
             try {
-                await getMusic();
+                const items = await getMusic();
+                setResults(items);
             } catch (e) {
                 console.error('getMusic failed:', e);
             }
         };
-
         fetchMusic();
     }, []);
+
+    const handleCardClick = (item: item) => {
+        sessionStorage.setItem("selectedItem", JSON.stringify(item));
+        router.push('../../review');
+    };
 
     return (
         <NoSsr>
@@ -146,15 +144,32 @@ export default function page() {
                         p: 2,
                     }}
                 >
-                    <FormGroup sx={{ mb: 6 }}>
-                        <RadioGroup row name="searchType" defaultValue="artist">
-                            <FormControlLabel value="artist" control={<Radio />} label="アーティスト" />
-                            <FormControlLabel value="album" control={<Radio />} label="アルバム" />
-                            <FormControlLabel value="track" control={<Radio />} label="曲" />
-                        </RadioGroup>
-                        <Box sx={{ height: 16 }} />
-                        <TextField id="outlined-basic" label="検索文字列" variant="outlined" />
-                    </FormGroup>
+                    検索結果
+                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                    <Grid container spacing={2} direction="column" alignItems="center">
+                        {results.map((item, index) => (
+                            <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
+                                <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}
+                                    onClick={() => handleCardClick(item)}>
+                                    <CardMedia
+                                        component="img"
+                                        sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
+                                        image={item.albumImage}
+                                        alt={item.trackName}
+                                    />
+                                    <CardContent>
+                                        <Typography variant="subtitle1" fontWeight="bold">
+                                            {item.trackName}
+                                        </Typography>
+                                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                                        <Typography variant="body2" color="text.secondary">
+                                            {item.artistName} {/* アーティスト名 */}
+                                        </Typography>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
                 </Box>
             </ThemeProvider>
         </NoSsr>
