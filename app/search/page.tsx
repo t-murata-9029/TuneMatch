@@ -9,6 +9,7 @@ import {
     NoSsr,
     RadioGroup,
     Radio,
+    Slider,
 } from '@mui/material';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -17,6 +18,7 @@ import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { postSearchState } from '../../types/forms/search';
 import { useRouter } from 'next/navigation';
+import { read } from 'fs';
 
 export default function page() {
 
@@ -52,14 +54,25 @@ export default function page() {
     );
 
     const [type, setType] = React.useState('');
+    const [limit, setLimit] = React.useState(3);
     const [query, setQuery] = React.useState('');
 
     const handleSubmit = () => {
         const queryData: postSearchState = {
             type: type,
+            limit: limit,
             query: query
         };
         sessionStorage.setItem('queryData', JSON.stringify(queryData));
+
+        if ('track' === queryData.type) {
+            router.push('/search/track');
+        }else if ('album' === queryData.type){
+            router.push('/search/album');
+        }else{
+            router.push('/search/artist');
+        }
+
         router.push('/search/track');
     };
 
@@ -87,6 +100,20 @@ export default function page() {
                             <FormControlLabel value="album" control={<Radio />} label="アルバム" />
                             <FormControlLabel value="track" control={<Radio />} label="曲" />
                         </RadioGroup>
+                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                        表示数
+                        <Slider
+                            aria-label="Temperature"
+                            defaultValue={3}
+                            valueLabelDisplay="auto"
+                            shiftStep={1}
+                            value={limit}
+                            onChange={(e, lim) => setLimit(lim)}
+                            step={1}
+                            marks
+                            min={1}
+                            max={10}
+                        />
                         <Box sx={{ height: 16 }} /> {/*空白追加*/}
                         <TextField
                             id="outlined-basic"

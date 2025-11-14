@@ -18,7 +18,6 @@ interface aaa {
 }
 
 export default function ReviewAnalysisPage() {
-  const [aiText, setAiText] = useState('');
   const hasRun = useRef(false);
 
   const [reviewResult, setReviewResult] = useState<aaa>();
