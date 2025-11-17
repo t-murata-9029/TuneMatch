@@ -54,6 +54,10 @@ export default function ReviewAnalysisPage() {
     10.extracted_moods: レビューから読み取れるムードや雰囲気、音楽に求めるシーンや用途
     11.extracted_keywords: その他の重要な特徴キーワード、具体的な音楽の嗜好
 
+    9〜11は、必ず string の配列(string[])で返してください。
+    単一の要素であっても、配列にしてください。
+    例： ["疾走感"] ← OK / "疾走感" ← NG
+    空の場合も空配列にしてください。[] ← OK / null ← NG
     出力は JSON のみで。余計な装飾はなし。
     
     `

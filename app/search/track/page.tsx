@@ -64,7 +64,7 @@ export default function Page() {
         [prefersDarkMode]
     );
 
-    // 🔹 Spotify API 取得関数
+    // Spotify API 曲名から取得関数
     async function getMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
         const dataJson = sessionStorage.getItem("queryData");
@@ -83,12 +83,7 @@ export default function Page() {
         const json = await result.json();
         let items: item[] = [];
 
-        if (type === 'artist' && json.artists?.items) {
-            items = json.artists.items.map((a: any) => ({
-                image: a.images[0]?.url ?? '',
-                trackName: a.name
-            }));
-        } else if (type === 'track' && json.tracks?.items) {
+        if (json.tracks?.items) {
             items = json.tracks.items.map((t: any) => ({
                 artistId: t.artists[0].id,
                 artistName: t.artists[0].name,
@@ -102,29 +97,73 @@ export default function Page() {
                 trackNumber: t.track_number,
                 durationMs: t.duration_ms,
             }));
-        } else if (type === 'album' && json.albums?.items) {
-            items = json.albums.items.map((a: any) => ({
-                image: a.images[0]?.url ?? '',
-                trackName: a.name
+        }
+
+        return items;
+    }
+
+    // Spotify API アルバムIdから取得関数
+    async function getAlbumMusic(): Promise<item[]> {
+        const spotify_access_token = await getToken();
+        const dataJson = sessionStorage.getItem("selectedAlbum");
+
+        console.log(dataJson);
+
+        if (!dataJson) return [];
+
+        const data = JSON.parse(dataJson);
+        const albumId = data.albumId
+
+        const url = `https://api.spotify.com/v1/albums/${albumId}`;
+
+        const result = await fetch(url, {
+            headers: { Authorization: `Bearer ${spotify_access_token}` }
+        });
+
+        const json = await result.json();
+
+        console.log(json);
+
+        let items: item[] = [];
+
+        if (json.tracks?.items) {
+            items = json.tracks.items.map((t: any) => ({
+                artistId: t.artists[0]?.id,
+                artistName: t.artists[0]?.name,
+                albumId: json.id,
+                albumName: json.name,
+                albumImage: json.images[1]?.url,
+                albumReleaseDate: json.release_date,
+                albumTotalTracks: json.total_tracks,
+                trackId: t.id,
+                trackName: t.name,
+                trackNumber: t.track_number,
+                durationMs: t.duration_ms,
             }));
         }
 
         return items;
     }
 
-    // 🔹 useEffect で初回取得
-    React.useEffect(() => {
-        const fetchMusic = async () => {
-            try {
-                const items = await getMusic();
-                setResults(items);
-            } catch (e) {
-                console.error('getMusic failed:', e);
-            }
-        };
-        fetchMusic();
-    }, []);
+    // どのAPIを使うか判定して返す関数
+    function shouldFetchAlbum(): boolean {
+        return sessionStorage.getItem("selectedAlbum") !== null;
+    }
 
+    async function fetchMusicData(): Promise<item[]> {
+        if (shouldFetchAlbum()) {
+            return await getAlbumMusic();
+        } else {
+            return await getMusic();
+        }
+    }
+
+    // useEffect
+    React.useEffect(() => {
+        fetchMusicData()
+            .then(data => setResults(data))
+            .catch(err => console.error("fetchMusicData failed:", err));
+    }, []);
     const handleCardClick = (item: item) => {
         sessionStorage.setItem("selectedItem", JSON.stringify(item));
         router.push('../../review');

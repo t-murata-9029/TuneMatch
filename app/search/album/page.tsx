@@ -18,17 +18,10 @@ import { useRouter } from 'next/navigation';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
 
 type item = {
-    artistId: string;
     artistName: string;
     albumId: string;
     albumName: string;
     albumImage: string;
-    albumReleaseDate: Timestamp;
-    albumTotalTracks: number;
-    trackId: string;
-    trackName: string;
-    trackNumber: number;
-    durationMs: number
 };
 
 export default function Page() {
@@ -83,29 +76,12 @@ export default function Page() {
         const json = await result.json();
         let items: item[] = [];
 
-        if (type === 'artist' && json.artists?.items) {
-            items = json.artists.items.map((a: any) => ({
-                image: a.images[0]?.url ?? '',
-                trackName: a.name
-            }));
-        } else if (type === 'track' && json.tracks?.items) {
-            items = json.tracks.items.map((t: any) => ({
-                artistId: t.artists[0].id,
-                artistName: t.artists[0].name,
-                albumId: t.album.id,
-                albumName: t.album.name,
-                albumImage: t.album.images[1].url,
-                albumReleaseDate: t.album.release_date,
-                albumTotalTracks: t.album.total_tracks,
-                trackId: t.id,
-                trackName: t.name,
-                trackNumber: t.track_number,
-                durationMs: t.duration_ms,
-            }));
-        } else if (type === 'album' && json.albums?.items) {
+        if (json.albums?.items) {
             items = json.albums.items.map((a: any) => ({
-                image: a.images[0]?.url ?? '',
-                trackName: a.name
+                artistName: a.artists[0].name,
+                albumId: a.id,
+                albumName: a.name,
+                albumImage: a.images[1]?.url ?? a.images[0]?.url, // 画像がなかった時の保険
             }));
         }
 
@@ -126,8 +102,9 @@ export default function Page() {
     }, []);
 
     const handleCardClick = (item: item) => {
-        sessionStorage.setItem("selectedItem", JSON.stringify(item));
-        router.push('../../review');
+        sessionStorage.setItem("selectedAlbum", JSON.stringify(item));
+        console.log(item);
+        router.push('../search/track');
     };
 
     return (
@@ -155,11 +132,11 @@ export default function Page() {
                                         component="img"
                                         sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
                                         image={item.albumImage}
-                                        alt={item.trackName}
+                                        alt={item.albumName}
                                     />
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight="bold">
-                                            {item.trackName}
+                                            {item.albumName}
                                         </Typography>
                                         <Box sx={{ height: 16 }} /> {/*空白追加*/}
                                         <Typography variant="body2" color="text.secondary">
