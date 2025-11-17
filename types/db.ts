@@ -38,3 +38,28 @@ export interface Music_reviews {
   rating: number;
   created_at: Date;
 }
+
+export interface Spotify_artist {
+  id: string; 
+  name: string;
+  image_url: string;
+  genres: string[];
+}
+
+export interface Spotify_album {
+  id: string; 
+  artist?: Spotify_artist;
+  name: string;
+  image_url: string;
+  release_date: Date; 
+  total_tracks: number;
+  tracks?: Spotify_track
+}
+
+export interface Spotify_track {
+  id: string; 
+  album_id: string;
+  name: string;
+  track_number: number;
+  duration_ms: number;
+}
