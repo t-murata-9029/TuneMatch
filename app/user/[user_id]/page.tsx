@@ -1,7 +1,8 @@
 import { getCurrentUser } from "@/lib/action";
 import { supabase } from "@/lib/supabase.cliant";
-import { User } from "@/types/db";
-import { Box, Divider, Link, Typography } from "@mui/material";
+import { Music_reviews, User } from "@/types/db";
+import { getReviewByUserId } from "@/utils/supabase/getReviews";
+import { Box, Divider, Link, Paper, Typography } from "@mui/material";
 
 interface UserPageProps {
   params: {
@@ -33,6 +34,9 @@ export default async function PostPage({ params }: UserPageProps) {
     color = 'red';
   }
 
+  // レビューを取得
+  const reviews: Music_reviews[] = await getReviewByUserId(user_id);
+
   return (
     <Box>
       <Typography variant="h5">
@@ -42,9 +46,30 @@ export default async function PostPage({ params }: UserPageProps) {
         さん
       </Typography>
       <Divider />
-      {
+      <Typography>{user.profile_text}</Typography>
+      {isMypage ?
+        <Link href={'#'}>プロフィール画像をアップロードする</Link>
+        : ""
       }
-      <Link href={"#"}>プロフィール画像をアップロードする</Link>
+      <Divider />
+
+      <Box id="review_list">
+        {
+          reviews.length != 0 ?
+            <>
+              {
+                reviews.map((review) => (
+                  <Box key={review.id} component={Paper}>
+                    <Typography variant="h6">{review.track_id}</Typography>
+                    <Typography variant="body1">{review.review_text}</Typography>
+                  </Box>
+                ))
+              }
+            </>
+            : <Typography>レビューを投稿していないようです。</Typography>
+        }
+      </Box>
+
     </Box>
   );
 }
