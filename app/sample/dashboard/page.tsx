@@ -118,8 +118,6 @@ const MenuPage = () => {
                     ))}
                 </Grid>
                 <CssBaseline />
-                <Button variant="contained" color='primary'>Contained</Button>
-                <Button  color='primary'>wawwa</Button>
             </Box>
             
         </ThemeProvider>
