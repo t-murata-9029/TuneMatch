@@ -24,6 +24,7 @@ interface links {
   link: string,
 }
 
+// ヘッダーのメニュー
 const pages: links[] = [
   {
     title: "dashboard",
@@ -35,7 +36,13 @@ const pages: links[] = [
   },
 ]
 
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+// ヘッダーの右側のアイコン押したときに表示されるやつ。
+const settings: links[] = [
+  {
+    title: "logout",
+    link: "/auth/logout"
+  },
+];
 
 // 非表示にしたいパスのリスト
 const HIDDEN_PATHS = ['/auth/login', '/auth/signup', '/'];
@@ -75,23 +82,23 @@ function Header() {
       <AppBar position="static">
         <Container maxWidth="xl">
           <Toolbar disableGutters>
-              <Typography
-                variant="h6"
-                noWrap
-                component="a"
-                href="/dashboard"
-                sx={{
-                  mr: 2,
-                  display: { xs: 'none', md: 'flex' },
-                  fontFamily: 'monospace',
-                  fontWeight: 700,
-                  letterSpacing: '.3rem',
-                  color: 'inherit',
-                  textDecoration: 'none',
-                }}
-              >
-                TuneMatch
-              </Typography>
+            <Typography
+              variant="h6"
+              noWrap
+              component="a"
+              href="/dashboard"
+              sx={{
+                mr: 2,
+                display: { xs: 'none', md: 'flex' },
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                letterSpacing: '.3rem',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              TuneMatch
+            </Typography>
             <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
               <IconButton
                 size="large"
@@ -182,8 +189,10 @@ function Header() {
                 onClose={handleCloseUserMenu}
               >
                 {settings.map((setting) => (
-                  <MenuItem key={setting} onClick={handleCloseUserMenu}>
-                    <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
+                  <MenuItem key={setting.title} onClick={handleCloseUserMenu}>
+                    <Typography sx={{ textAlign: 'center' }} component="a" href={setting.link}>
+                      {setting.title}
+                    </Typography>
                   </MenuItem>
                 ))}
               </Menu>
