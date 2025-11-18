@@ -31,7 +31,7 @@ const pages: links[] = [
   },
   {
     title: "review",
-    link: "/review",
+    link: "/search",
   },
 ]
 
@@ -40,6 +40,9 @@ const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
 // 非表示にしたいパスのリスト
 const HIDDEN_PATHS = ['/auth/login', '/auth/signup', '/'];
 
+/** アプリのヘッダー
+ * @returns Header
+ */
 function Header() {
 
   const pathname = usePathname();
@@ -72,24 +75,23 @@ function Header() {
       <AppBar position="static">
         <Container maxWidth="xl">
           <Toolbar disableGutters>
-            <Typography
-              variant="h6"
-              noWrap
-              component="a"
-              href="#app-bar-with-responsive-menu"
-              sx={{
-                mr: 2,
-                display: { xs: 'none', md: 'flex' },
-                fontFamily: 'monospace',
-                fontWeight: 700,
-                letterSpacing: '.3rem',
-                color: 'inherit',
-                textDecoration: 'none',
-              }}
-            >
-              TuneMatch
-            </Typography>
-
+              <Typography
+                variant="h6"
+                noWrap
+                component="a"
+                href="/dashboard"
+                sx={{
+                  mr: 2,
+                  display: { xs: 'none', md: 'flex' },
+                  fontFamily: 'monospace',
+                  fontWeight: 700,
+                  letterSpacing: '.3rem',
+                  color: 'inherit',
+                  textDecoration: 'none',
+                }}
+              >
+                TuneMatch
+              </Typography>
             <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
               <IconButton
                 size="large"
