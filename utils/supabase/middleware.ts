@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { refreshToken } from '../spotify/refreshToken'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -53,6 +54,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  /*--- セッション更新 ---*/
+  const { data: sessionData, error } = await supabase.auth.getSession();
+  if (error) {
+    throw error;
+  }
+
+  const refresh_token = sessionData.session?.refresh_token;
+
+  if (refresh_token) {
+    console.log(refresh_token)
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession({ refresh_token })
+    if (refreshError) {
+      throw refreshError;
+    }
+  }
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   // If you're creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:
