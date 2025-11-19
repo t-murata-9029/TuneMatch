@@ -39,7 +39,11 @@ const pages: links[] = [
 // ヘッダーの右側のアイコン押したときに表示されるやつ。
 const settings: links[] = [
   {
-    title: "logout",
+    title: "Mypage",
+    link: "/user/mypage"
+  },
+  {
+    title: "Logout",
     link: "/auth/logout"
   },
 ];

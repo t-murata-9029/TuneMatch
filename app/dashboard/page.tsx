@@ -28,24 +28,6 @@ import main_theme from '@/theme/theme';
 const MenuPage = () => {
     const theme = useTheme();
 
-    const [userId, setUserId] = useState("")
-
-    useEffect(() => {
-        const getUserId = async () => {
-            const { data, error } = await supabase.auth.getUser();
-
-            if (error) {
-                console.log(data)
-                throw error;
-            }
-            if (data != null) {
-                setUserId(data.user.id);
-            }
-
-        };
-        getUserId();
-    }, []);
-
     // --- ナビゲーションカードデータ ---
     const navCards = [
         {
@@ -70,7 +52,7 @@ const MenuPage = () => {
             title: 'マイページ',
             description: 'プロフィールを確認、変更できます。',
             icon: <HomeIcon sx={{ fontSize: 40 }} />,
-            href: '/user/' + userId
+            href: '/user/mypage'
         },
     ];
 
