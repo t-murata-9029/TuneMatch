@@ -22,6 +22,15 @@ import { useRouter } from 'next/navigation';
 
 export default function page() {
 
+    if (sessionStorage.getItem("selectedAlbum")) {
+        sessionStorage.removeItem("selectedAlbum");
+    }
+
+    if (sessionStorage.getItem("selectedArtist")) {
+        sessionStorage.removeItem("selectedArtist");
+    }
+
+
     const router = useRouter();
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
