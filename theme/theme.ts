@@ -7,9 +7,29 @@ const main_theme = createTheme({
             contrastText: '#ffffffff',
         },
         background: {
-            default: '#bdbdbd',
+            default: '#ffffffff',
         },
         text: { primary: '#FF7F50' },
+    }, 
+    components: {
+        // 既存のボタン設定
+        MuiButton: {
+            defaultProps: {
+                color: 'primary',
+            },
+        },
+        // テキストフィールドのデフォルトを primary に変更
+        MuiTextField: {
+            defaultProps: {
+                color: 'primary',
+            },
+        },
+        // チェックボックスのデフォルトを primary に変更
+        MuiCheckbox: {
+            defaultProps: {
+                color: 'primary',
+            },
+        },
     },
 });
 
