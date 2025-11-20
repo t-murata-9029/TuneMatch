@@ -52,7 +52,7 @@ const MenuPage = () => {
             title: 'レビュー',
             description: '聞いた曲をレビューしましょう。',
             icon: <AudiotrackIcon sx={{ fontSize: 40 }} />,
-            href: '/review'
+            href: '/search'
         },
         {
             title: 'マッチ',
