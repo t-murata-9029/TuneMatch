@@ -6,7 +6,9 @@ import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
 import { constants } from 'buffer';
-import { Typography } from '@mui/material';
+import { Box, Button, createTheme, CssBaseline, NoSsr, ThemeProvider, Typography, useMediaQuery } from '@mui/material';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 //表示するデータ用
 interface aaa {
@@ -18,6 +20,38 @@ interface aaa {
 }
 
 export default function ReviewAnalysisPage() {
+
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+  // 🔹 テーマ
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: { mode: prefersDarkMode ? 'dark' : 'light' },
+        components: {
+          MuiOutlinedInput: {
+            styleOverrides: {
+              root: {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#ffffff' : '#000000',
+                  borderWidth: 2,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
+                },
+              },
+            },
+          },
+        },
+      }),
+    [prefersDarkMode]
+  );
+
+  const router = useRouter();
+
   const hasRun = useRef(false);
 
   const [reviewResult, setReviewResult] = useState<aaa>();
@@ -290,20 +324,55 @@ export default function ReviewAnalysisPage() {
         sentiment_negativity,
       }
 
+      sessionStorage.removeItem("selectedItem");
+      sessionStorage.removeItem("reviewData");
+      sessionStorage.removeItem("queryData");
+      sessionStorage.removeItem("selectedAlbum");
+      sessionStorage.removeItem("selectedArtist");
+
       setReviewResult(reviewData2);
     }
 
     callApi();
   }, []);
 
+  const handleSubmit = () => {
+    router.push('../../dashboard');
+  };
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>受け取り画面</h1>
-      <Typography> 歌詞：{reviewResult?.lyric}</Typography>
-      <Typography> メロディー：{reviewResult?.melody}</Typography>
-      <Typography> リズム：{reviewResult?.rhythm}</Typography>
-      <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
-      <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
-    </div>
+    <NoSsr>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            p: 2,
+          }}
+        >
+          <div style={{ padding: 20 }}>
+            <h1>受け取り画面</h1>
+            <Typography> 歌詞：{reviewResult?.lyric}</Typography>
+            <Typography> メロディー：{reviewResult?.melody}</Typography>
+            <Typography> リズム：{reviewResult?.rhythm}</Typography>
+            <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
+            <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
+          </div>
+
+          <Button
+            variant="outlined"
+            onClick={handleSubmit}
+            sx={{ width: 'auto', px: 3, py: 1.5 }}
+          >
+            ダッシュボード
+          </Button>
+        </Box>
+      </ThemeProvider>
+    </NoSsr>
+
   );
 }

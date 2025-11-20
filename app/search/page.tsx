@@ -15,21 +15,12 @@ import {
     FormGroup,
     FormControlLabel
 } from '@mui/material';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { postSearchState } from '../../types/forms/search';
 import { useRouter } from 'next/navigation';
 
 export default function page() {
-
-    if (sessionStorage.getItem("selectedAlbum")) {
-        sessionStorage.removeItem("selectedAlbum");
-    }
-
-    if (sessionStorage.getItem("selectedArtist")) {
-        sessionStorage.removeItem("selectedArtist");
-    }
-
 
     const router = useRouter();
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -61,7 +52,6 @@ export default function page() {
     );
 
     const [type, setType] = React.useState('');
-    const [limit, setLimit] = React.useState(3);
     const [query, setQuery] = React.useState('');
     const [errors, setErrors] = React.useState({ query: false, type: false });
 
@@ -80,10 +70,6 @@ export default function page() {
         }
     };
 
-    const handleLimitChange = (e: Event, value: number | number[]) => {
-        setLimit(value as number);
-    };
-
     const handleSubmit = () => {
         const newErrors = {
             query: query.trim() === "",
@@ -93,13 +79,18 @@ export default function page() {
 
         if (newErrors.query || newErrors.type) return;
 
-        const queryData: postSearchState = { type, limit, query };
+        const queryData: postSearchState = { type, query };
         sessionStorage.setItem('queryData', JSON.stringify(queryData));
 
         if (type === 'track') router.push('/search/track');
         else if (type === 'album') router.push('/search/album');
         else router.push('/search/artist');
     };
+
+    useEffect(() => {
+        sessionStorage.removeItem("selectedAlbum");
+        sessionStorage.removeItem("selectedArtist");
+    }, []);
 
     return (
         <NoSsr>
@@ -129,19 +120,6 @@ export default function page() {
                                 <FormControlLabel value="track" control={<Radio />} label="曲" />
                             </RadioGroup>
                         </FormControl>
-
-                        <Box sx={{ height: 16 }} /> {/* 空白 */}
-                        表示数
-                        <Slider
-                            aria-label="Temperature"
-                            value={limit}
-                            onChange={handleLimitChange}
-                            valueLabelDisplay="auto"
-                            step={1}
-                            marks
-                            min={1}
-                            max={10}
-                        />
 
                         <Box sx={{ height: 16 }} /> {/* 空白 */}
                         <TextField

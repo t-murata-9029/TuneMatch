@@ -10,6 +10,7 @@ import {
     CardMedia,
     Typography,
     Grid,
+    Pagination,
 } from '@mui/material';
 import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -25,10 +26,45 @@ type item = {
     followers: string;
 };
 
+// ページネーション押下時アーティスト取得関数
+async function getArtistNumber(page: number): Promise<item[]> {
+    const spotify_access_token = await getToken();
+    const dataJson = sessionStorage.getItem("queryData");
+    if (!dataJson) return [];
+
+    const data = JSON.parse(dataJson);
+    const query = data.query;
+    const type = data.type;
+    const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10&offset=${(page - 1) * 10}`;
+
+    const result = await fetch(url, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const json = await result.json();
+    let items: item[] = [];
+
+    console.log(json);
+
+    if (json.artists?.items) {
+        items = json.artists.items.map((a: any) => ({
+            artistId: a.id,
+            artistName: a.name,
+            artistImage: a.images?.[1]?.url || a.images?.[0]?.url || "",
+            genres: a.genres || [],
+            followers: a.followers.total,
+        }));
+    }
+
+    return items;
+}
+
 export default function Page() {
     const router = useRouter();
 
     const [results, setResults] = React.useState<item[]>([]);
+    const [pageCount, setPageCount] = React.useState<number>();
+
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
     // 🔹 テーマ
@@ -67,8 +103,7 @@ export default function Page() {
         const data = JSON.parse(dataJson);
         const query = data.query;
         const type = data.type;
-        const limit = data.limit;
-        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10`;
 
         const result = await fetch(url, {
             headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -88,6 +123,14 @@ export default function Page() {
                 followers: a.followers.total,
             }));
         }
+
+        console.log(json);
+        const responseTotal = json.artists.total;
+        console.log(responseTotal);
+
+        let pageCount = Math.ceil(responseTotal / 10);
+
+        setPageCount(pageCount);
 
         return items;
     }
@@ -156,6 +199,14 @@ export default function Page() {
                             </Grid>
                         ))}
                     </Grid>
+                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                    <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
+                        onChange={async (event, page) => {
+                            const items = await getArtistNumber(page);
+                            setResults(items);
+                        }}
+                    />
+
                 </Box>
             </ThemeProvider>
         </NoSsr>

@@ -10,6 +10,7 @@ import {
     CardMedia,
     Typography,
     Grid,
+    Pagination,
 } from '@mui/material';
 import React from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -31,10 +32,99 @@ type item = {
     durationMs: number
 };
 
+// Spotify API 曲名から取得関数
+async function handlePageChange(page: number): Promise<item[]> {
+    const spotify_access_token = await getToken();
+    const dataJson = sessionStorage.getItem("queryData");
+    if (!dataJson) return [];
+
+    const data = JSON.parse(dataJson);
+    const query = data.query;
+    const type = data.type;
+    const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10&offset=${(page - 1) * 10}`;
+
+    const result = await fetch(url, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const json = await result.json();
+    let items: item[] = [];
+
+    if (json.tracks?.items) {
+        items = json.tracks.items.map((t: any) => ({
+            artistId: t.artists[0].id,
+            artistName: t.artists[0].name,
+            albumId: t.album.id,
+            albumName: t.album.name,
+            albumImage: t.album.images[1].url,
+            albumReleaseDate: t.album.release_date,
+            albumTotalTracks: t.album.total_tracks,
+            trackId: t.id,
+            trackName: t.name,
+            trackNumber: t.track_number,
+            durationMs: t.duration_ms,
+        }));
+    }
+
+    return items;
+}
+
+// Spotify API アルバムIdから取得関数
+async function handlePageChangeAlbum(page: number): Promise<item[]> {
+    const spotify_access_token = await getToken();
+    const dataJson = sessionStorage.getItem("selectedAlbum");
+
+    console.log(dataJson);
+
+    if (!dataJson) return [];
+
+    const data = JSON.parse(dataJson);
+    const albumId = data.albumId
+
+    const url = `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=10&offset=${(page - 1) * 10}`;
+
+    const result = await fetch(url, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const json = await result.json();
+
+    console.log(json);
+
+    const getReleaseDateUrl = `https://api.spotify.com/v1/albums/${albumId}`;
+
+    const resultDate = await fetch(getReleaseDateUrl, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const dateJson = await resultDate.json();
+
+    let items: item[] = [];
+
+    if (json.items) {
+        items = json.items.map((t: any) => ({
+            artistId: t.artists[0]?.id,
+            artistName: t.artists[0]?.name,
+            albumId: albumId,
+            albumName: data.albumName,
+            albumImage: data.albumImage,
+            albumReleaseDate: dateJson.release_date,
+            albumTotalTracks: dateJson.total_tracks,
+            trackId: t.id,
+            trackName: t.name,
+            trackNumber: t.track_number,
+            durationMs: t.duration_ms,
+        }));
+    }
+
+    return items;
+}
+
 export default function Page() {
     const router = useRouter();
 
     const [results, setResults] = React.useState<item[]>([]);
+    const [pageCount, setPageCount] = React.useState<number>();
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
     // 🔹 テーマ
@@ -73,8 +163,7 @@ export default function Page() {
         const data = JSON.parse(dataJson);
         const query = data.query;
         const type = data.type;
-        const limit = data.limit;
-        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10`;
 
         const result = await fetch(url, {
             headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -99,6 +188,14 @@ export default function Page() {
             }));
         }
 
+        console.log(json);
+        const responseTotal = json.total_tracks;
+        console.log(responseTotal);
+
+        let pageCount = Math.ceil(responseTotal / 10);
+
+        setPageCount(pageCount);
+
         return items;
     }
 
@@ -114,7 +211,7 @@ export default function Page() {
         const data = JSON.parse(dataJson);
         const albumId = data.albumId
 
-        const url = `https://api.spotify.com/v1/albums/${albumId}`;
+        const url = `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=10`;
 
         const result = await fetch(url, {
             headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -124,23 +221,45 @@ export default function Page() {
 
         console.log(json);
 
+        const getReleaseDateUrl = `https://api.spotify.com/v1/albums/${albumId}`;
+
+        const resultDate = await fetch(getReleaseDateUrl, {
+            headers: { Authorization: `Bearer ${spotify_access_token}` }
+        });
+
+        const dateJson = await resultDate.json();
+
+        console.log(dateJson);
+
+        const release_date = dateJson.release_date;
+        console.log(release_date);
+
+        const total_tracks = dateJson.total_tracks;
+
         let items: item[] = [];
 
-        if (json.tracks?.items) {
-            items = json.tracks.items.map((t: any) => ({
+        if (json.items) {
+            items = json.items.map((t: any) => ({
                 artistId: t.artists[0]?.id,
                 artistName: t.artists[0]?.name,
-                albumId: json.id,
-                albumName: json.name,
-                albumImage: json.images[1]?.url,
-                albumReleaseDate: json.release_date,
-                albumTotalTracks: json.total_tracks,
+                albumId: data.albumId,
+                albumName: data.albumName,
+                albumImage: data.albumImage,
+                albumReleaseDate: release_date,
+                albumTotalTracks: total_tracks,
                 trackId: t.id,
                 trackName: t.name,
                 trackNumber: t.track_number,
                 durationMs: t.duration_ms,
             }));
         }
+
+        const responseTotal = dateJson.total_tracks;
+        console.log(responseTotal);
+
+        let pageCount = Math.ceil(responseTotal / 10);
+
+        setPageCount(pageCount);
 
         return items;
     }
@@ -209,6 +328,18 @@ export default function Page() {
                             </Grid>
                         ))}
                     </Grid>
+                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                    <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
+                        onChange={async (event, page) => {
+                            if (shouldFetchAlbum()) {
+                                const items = await handlePageChangeAlbum(page);
+                                setResults(items);
+                            } else {
+                                const items = await handlePageChange(page);
+                                setResults(items);
+                            }
+                        }}
+                    />
                 </Box>
             </ThemeProvider>
         </NoSsr>

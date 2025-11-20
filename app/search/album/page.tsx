@@ -17,6 +17,7 @@ import getToken from '@/utils/spotify/getToken';
 import { useRouter } from 'next/navigation';
 import Pagination from '@mui/material/Pagination';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
+import { teal } from '@mui/material/colors';
 
 type item = {
     artistName: string;
@@ -27,6 +28,36 @@ type item = {
 
 // pagination押下時、アルバム取得関数
 async function handlePageChange(page: number): Promise<item[]> {
+    const spotify_access_token = await getToken();
+    const dataJson = sessionStorage.getItem("queryData");
+    if (!dataJson) return [];
+
+    const data = JSON.parse(dataJson);
+    const query = data.query;
+    const type = data.type;
+    const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10&offset=${(page - 1) * 10}`;
+
+    const result = await fetch(url, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const json = await result.json();
+    let items: item[] = [];
+
+    if (json.albums?.items) {
+        items = json.albums.items.map((a: any) => ({
+            artistName: a.artists[0].name,
+            albumId: a.id,
+            albumName: a.name,
+            albumImage: a.images[1]?.url ?? a.images[0]?.url, // 画像がなかった時の保険
+        }));
+    }
+
+    return items;
+}
+
+// pagination押下時、アルバム取得(アーティスト固定)関数
+async function handlePageChangeArtist(page: number): Promise<item[]> {
     const spotify_access_token = await getToken();
 
     const dataJson = sessionStorage.getItem("selectedArtist");
@@ -64,6 +95,8 @@ export default function Page() {
     const router = useRouter();
 
     const [results, setResults] = React.useState<item[]>([]);
+    const [pageCount, setPageCount] = React.useState<number>();
+
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
     // 🔹 テーマ
@@ -102,8 +135,7 @@ export default function Page() {
         const data = JSON.parse(dataJson);
         const query = data.query;
         const type = data.type;
-        const limit = data.limit;
-        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=${limit}`;
+        const url = `https://api.spotify.com/v1/search?q=${query}&type=${type}&limit=10`;
 
         const result = await fetch(url, {
             headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -121,10 +153,18 @@ export default function Page() {
             }));
         }
 
+        console.log(json);
+        const responseTotal = json.albums.total;
+        console.log(responseTotal);
+
+        let pageCount = Math.ceil(responseTotal / 10);
+
+        setPageCount(pageCount);
+
         return items;
     }
 
-    // Spotify API アルバムIdから取得関数
+    // Spotify API アーティストIdから取得関数
     async function getArtistMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
         const dataJson = sessionStorage.getItem("selectedArtist");
@@ -156,6 +196,14 @@ export default function Page() {
                 albumImage: album.images?.[0]?.url ?? "",
             }));
         }
+
+        console.log(json);
+        const responseTotal = json.total;
+        console.log(responseTotal);
+
+        let pageCount = Math.ceil(responseTotal / 10);
+
+        setPageCount(pageCount);
 
         return items;
     }
@@ -227,10 +275,15 @@ export default function Page() {
                         ))}
                     </Grid>
                     <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                    <Pagination count={10} variant="outlined" shape="rounded" color='primary'
+                    <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
                         onChange={async (event, page) => {
-                            const items = await handlePageChange(page);
-                            setResults(items);
+                            if (shouldFetchArtist()) {
+                                const items = await handlePageChangeArtist(page);
+                                setResults(items);
+                            } else {
+                                const items = await handlePageChange(page);
+                                setResults(items);
+                            }
                         }}
                     />
                 </Box>
