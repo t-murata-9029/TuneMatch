@@ -50,8 +50,8 @@ export default function Login() {
                 <FormLabel htmlFor="email-input">メールアドレス</FormLabel>
                 <TextField
                     id="email-input"
+                    className="email"
                     fullWidth
-                    multiline // 複数行を有効化
                     size="small"
                     name="email"
                     value={formData.email}
@@ -64,6 +64,7 @@ export default function Login() {
                 <FormLabel htmlFor="password-input">パスワード</FormLabel>
                 <TextField
                     id="password-input"
+                    className="password"
                     fullWidth
                     size="small"
                     name="password"
@@ -73,6 +74,9 @@ export default function Login() {
                     required
                 />
             </FormControl>
+            <Typography variant="caption" component="a" href="/auth/signup" color="gray">
+                アカウントを新規作成
+            </Typography>
             <Button
                 type="submit"
                 variant="contained"
