@@ -7,7 +7,7 @@ const main_theme = createTheme({
             contrastText: '#ffffffff',
         },
         background: {
-            default: '#bdbdbd',
+            default: '#ffffffff',
         },
         text: { primary: '#FF7F50' },
     },
