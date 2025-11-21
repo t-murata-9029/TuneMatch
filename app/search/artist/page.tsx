@@ -11,6 +11,8 @@ import {
     Typography,
     Grid,
     Pagination,
+    Breadcrumbs,
+    Link,
 } from '@mui/material';
 import React from 'react';
 import getToken from '@/utils/spotify/getToken';
@@ -56,6 +58,11 @@ async function getArtistNumber(page: number): Promise<item[]> {
     }
 
     return items;
+}
+
+function handleClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) {
+    //event.preventDefault();
+    console.info('You clicked a breadcrumb.');
 }
 
 export default function Page() {
@@ -105,6 +112,12 @@ export default function Page() {
         return items;
     }
 
+    const breadcrumbs = [
+        <Link underline="hover" key="1" color="inherit" href="artist" onClick={handleClick}>
+            Artist
+        </Link>
+    ];
+
     // 🔹 useEffect で初回取得
     React.useEffect(() => {
         const fetchArtist = async () => {
@@ -126,6 +139,9 @@ export default function Page() {
 
     return (
         <NoSsr>
+            <Breadcrumbs separator="›" aria-label="breadcrumb">
+                {breadcrumbs}
+            </Breadcrumbs>
             <Box
                 sx={{
                     display: 'flex',
