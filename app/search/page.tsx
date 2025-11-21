@@ -18,41 +18,13 @@ import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import React from 'react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
 import { postSearchState } from '../types/forms/search';
 import { useRouter } from 'next/navigation';
 
 export default function page() {
 
     const router = useRouter();
-    const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-
-    // 🔹 テーマ内で TextField の border スタイルを統一
-    const theme = React.useMemo(
-        () =>
-            createTheme({
-                palette: { mode: prefersDarkMode ? 'dark' : 'light' },
-                components: {
-                    MuiOutlinedInput: {
-                        styleOverrides: {
-                            root: {
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#ffffff' : '#000000',
-                                    borderWidth: 2,
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
-                                },
-                            },
-                        },
-                    },
-                },
-            }),
-        [prefersDarkMode]
-    );
 
     const [type, setType] = React.useState('');
     const [query, setQuery] = React.useState('');

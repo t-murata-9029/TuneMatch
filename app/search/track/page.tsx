@@ -13,7 +13,6 @@ import {
     Pagination,
 } from '@mui/material';
 import React from 'react';
-import { createTheme } from '@mui/material/styles';
 import getToken from '@/utils/spotify/getToken';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
@@ -126,33 +125,6 @@ export default function Page() {
     const [results, setResults] = React.useState<item[]>([]);
     const [pageCount, setPageCount] = React.useState<number>();
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-
-    // 🔹 テーマ
-    const theme = React.useMemo(
-        () =>
-            createTheme({
-                palette: { mode: prefersDarkMode ? 'dark' : 'light' },
-                components: {
-                    MuiOutlinedInput: {
-                        styleOverrides: {
-                            root: {
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#ffffff' : '#000000',
-                                    borderWidth: 2,
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
-                                },
-                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
-                                },
-                            },
-                        },
-                    },
-                },
-            }),
-        [prefersDarkMode]
-    );
 
     // Spotify API 曲名から取得関数
     async function getMusic(): Promise<item[]> {
@@ -290,58 +262,56 @@ export default function Page() {
 
     return (
         <NoSsr>
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        minHeight: '100vh',
-                        p: 2,
+            <CssBaseline />
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '100vh',
+                    p: 2,
+                }}
+            >
+                検索結果
+                <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                <Grid container spacing={2} direction="column" alignItems="center">
+                    {results.map((item, index) => (
+                        <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
+                            <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}
+                                onClick={() => handleCardClick(item)}>
+                                <CardMedia
+                                    component="img"
+                                    sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
+                                    image={item.albumImage}
+                                    alt={item.trackName}
+                                />
+                                <CardContent>
+                                    <Typography variant="subtitle1" fontWeight="bold">
+                                        {item.trackName}
+                                    </Typography>
+                                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                                    <Typography variant="body2" color="text.secondary">
+                                        {item.artistName} {/* アーティスト名 */}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+                <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
+                    onChange={async (event, page) => {
+                        if (shouldFetchAlbum()) {
+                            const items = await handlePageChangeAlbum(page);
+                            setResults(items);
+                        } else {
+                            const items = await handlePageChange(page);
+                            setResults(items);
+                        }
                     }}
-                >
-                    検索結果
-                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                    <Grid container spacing={2} direction="column" alignItems="center">
-                        {results.map((item, index) => (
-                            <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
-                                <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}
-                                    onClick={() => handleCardClick(item)}>
-                                    <CardMedia
-                                        component="img"
-                                        sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
-                                        image={item.albumImage}
-                                        alt={item.trackName}
-                                    />
-                                    <CardContent>
-                                        <Typography variant="subtitle1" fontWeight="bold">
-                                            {item.trackName}
-                                        </Typography>
-                                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                                        <Typography variant="body2" color="text.secondary">
-                                            {item.artistName} {/* アーティスト名 */}
-                                        </Typography>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
-                    <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
-                        onChange={async (event, page) => {
-                            if (shouldFetchAlbum()) {
-                                const items = await handlePageChangeAlbum(page);
-                                setResults(items);
-                            } else {
-                                const items = await handlePageChange(page);
-                                setResults(items);
-                            }
-                        }}
-                    />
-                </Box>
-            </ThemeProvider>
+                />
+            </Box>
         </NoSsr>
     );
 }
