@@ -14,7 +14,7 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import { Link, ThemeProvider } from '@mui/material';
+import { Link } from '@mui/material';
 import main_theme from '@/theme/theme';
 import { usePathname } from 'next/navigation';
 
@@ -82,7 +82,6 @@ function Header() {
   };
 
   return (
-    <ThemeProvider theme={main_theme}>
       <AppBar position="static">
         <Container maxWidth="xl">
           <Toolbar disableGutters>
@@ -204,7 +203,6 @@ function Header() {
           </Toolbar>
         </Container>
       </AppBar>
-    </ThemeProvider>
   );
 }
 export default Header;

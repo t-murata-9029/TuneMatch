@@ -11,7 +11,6 @@ import {
     CardActionArea,
     useTheme,
     Link,
-    ThemeProvider,
     Button,
     CssBaseline
 } from '@mui/material';
@@ -57,7 +56,6 @@ const MenuPage = () => {
     ];
 
     return (
-        <ThemeProvider theme={main_theme}>
             <Box sx={{ flexGrow: 1, p: 4, bgcolor: theme.palette.grey[50], minHeight: '100vh' }}>
                 <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
                     TuneMatch
@@ -100,7 +98,6 @@ const MenuPage = () => {
                     ))}
                 </Grid>
             </Box>
-        </ThemeProvider>
     );
 };
 

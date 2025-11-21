@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   createTheme,
-  ThemeProvider,
   CssBaseline,
   useMediaQuery,
   Box,
@@ -37,32 +36,6 @@ export default function ReviewPage() {
   const router = useRouter();
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: { mode: prefersDarkMode ? 'dark' : 'light' },
-        components: {
-          MuiOutlinedInput: {
-            styleOverrides: {
-              root: {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: prefersDarkMode ? '#ffffff' : '#000000',
-                  borderWidth: 2,
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
-                },
-              },
-            },
-          },
-        },
-      }),
-    [prefersDarkMode]
-  );
-
   const [text, setText] = React.useState('');
   const [rating, setRating] = React.useState<number | null>(2);
   const [hover, setHover] = React.useState(-1);
@@ -78,8 +51,6 @@ export default function ReviewPage() {
 
   return (
     <NoSsr>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
         <Box
           sx={{
             display: 'flex',
@@ -161,7 +132,6 @@ export default function ReviewPage() {
             </Button>
           </Box>
         </Box>
-      </ThemeProvider>
     </NoSsr >
   );
 }
