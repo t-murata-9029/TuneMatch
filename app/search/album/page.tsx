@@ -10,29 +10,23 @@ import {
     CardMedia,
     Typography,
     Grid,
-    Pagination,
 } from '@mui/material';
 import React from 'react';
-import { createTheme } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import getToken from '@/utils/spotify/getToken';
 import { useRouter } from 'next/navigation';
+import Pagination from '@mui/material/Pagination';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
+import { teal } from '@mui/material/colors';
 
 type item = {
-    artistId: string;
     artistName: string;
     albumId: string;
     albumName: string;
     albumImage: string;
-    albumReleaseDate: Timestamp;
-    albumTotalTracks: number;
-    trackId: string;
-    trackName: string;
-    trackNumber: number;
-    durationMs: number
 };
 
-// Spotify API 曲名から取得関数
+// pagination押下時、アルバム取得関数
 async function handlePageChange(page: number): Promise<item[]> {
     const spotify_access_token = await getToken();
     const dataJson = sessionStorage.getItem("queryData");
@@ -50,38 +44,30 @@ async function handlePageChange(page: number): Promise<item[]> {
     const json = await result.json();
     let items: item[] = [];
 
-    if (json.tracks?.items) {
-        items = json.tracks.items.map((t: any) => ({
-            artistId: t.artists[0].id,
-            artistName: t.artists[0].name,
-            albumId: t.album.id,
-            albumName: t.album.name,
-            albumImage: t.album.images[1].url,
-            albumReleaseDate: t.album.release_date,
-            albumTotalTracks: t.album.total_tracks,
-            trackId: t.id,
-            trackName: t.name,
-            trackNumber: t.track_number,
-            durationMs: t.duration_ms,
+    if (json.albums?.items) {
+        items = json.albums.items.map((a: any) => ({
+            artistName: a.artists[0].name,
+            albumId: a.id,
+            albumName: a.name,
+            albumImage: a.images[1]?.url ?? a.images[0]?.url, // 画像がなかった時の保険
         }));
     }
 
     return items;
 }
 
-// Spotify API アルバムIdから取得関数
-async function handlePageChangeAlbum(page: number): Promise<item[]> {
+// pagination押下時、アルバム取得(アーティスト固定)関数
+async function handlePageChangeArtist(page: number): Promise<item[]> {
     const spotify_access_token = await getToken();
-    const dataJson = sessionStorage.getItem("selectedAlbum");
 
-    console.log(dataJson);
+    const dataJson = sessionStorage.getItem("selectedArtist");
 
     if (!dataJson) return [];
 
     const data = JSON.parse(dataJson);
-    const albumId = data.albumId
+    const artistId = data.artistId
 
-    const url = `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=10&offset=${(page - 1) * 10}`;
+    const url = `https://api.spotify.com/v1/artists/${artistId}/albums?limit=10&offset=${(page - 1) * 10}`;
 
     const result = await fetch(url, {
         headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -91,29 +77,14 @@ async function handlePageChangeAlbum(page: number): Promise<item[]> {
 
     console.log(json);
 
-    const getReleaseDateUrl = `https://api.spotify.com/v1/albums/${albumId}`;
-
-    const resultDate = await fetch(getReleaseDateUrl, {
-        headers: { Authorization: `Bearer ${spotify_access_token}` }
-    });
-
-    const dateJson = await resultDate.json();
-
     let items: item[] = [];
 
     if (json.items) {
-        items = json.items.map((t: any) => ({
-            artistId: t.artists[0]?.id,
-            artistName: t.artists[0]?.name,
-            albumId: albumId,
-            albumName: data.albumName,
-            albumImage: data.albumImage,
-            albumReleaseDate: dateJson.release_date,
-            albumTotalTracks: dateJson.total_tracks,
-            trackId: t.id,
-            trackName: t.name,
-            trackNumber: t.track_number,
-            durationMs: t.duration_ms,
+        items = json.items.map((album: any) => ({
+            artistName: album.artists?.[0]?.name ?? "",
+            albumId: album.id,
+            albumName: album.name,
+            albumImage: album.images?.[0]?.url ?? "",
         }));
     }
 
@@ -125,6 +96,7 @@ export default function Page() {
 
     const [results, setResults] = React.useState<item[]>([]);
     const [pageCount, setPageCount] = React.useState<number>();
+
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
     // 🔹 テーマ
@@ -154,7 +126,7 @@ export default function Page() {
         [prefersDarkMode]
     );
 
-    // Spotify API 曲名から取得関数
+    // 🔹 Spotify API 取得関数
     async function getMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
         const dataJson = sessionStorage.getItem("queryData");
@@ -172,24 +144,17 @@ export default function Page() {
         const json = await result.json();
         let items: item[] = [];
 
-        if (json.tracks?.items) {
-            items = json.tracks.items.map((t: any) => ({
-                artistId: t.artists[0].id,
-                artistName: t.artists[0].name,
-                albumId: t.album.id,
-                albumName: t.album.name,
-                albumImage: t.album.images[1].url,
-                albumReleaseDate: t.album.release_date,
-                albumTotalTracks: t.album.total_tracks,
-                trackId: t.id,
-                trackName: t.name,
-                trackNumber: t.track_number,
-                durationMs: t.duration_ms,
+        if (json.albums?.items) {
+            items = json.albums.items.map((a: any) => ({
+                artistName: a.artists[0].name,
+                albumId: a.id,
+                albumName: a.name,
+                albumImage: a.images[1]?.url ?? a.images[0]?.url, // 画像がなかった時の保険
             }));
         }
 
         console.log(json);
-        const responseTotal = json.total_tracks;
+        const responseTotal = json.albums.total;
         console.log(responseTotal);
 
         let pageCount = Math.ceil(responseTotal / 10);
@@ -199,19 +164,19 @@ export default function Page() {
         return items;
     }
 
-    // Spotify API アルバムIdから取得関数
-    async function getAlbumMusic(): Promise<item[]> {
+    // Spotify API アーティストIdから取得関数
+    async function getArtistMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
-        const dataJson = sessionStorage.getItem("selectedAlbum");
+        const dataJson = sessionStorage.getItem("selectedArtist");
 
         console.log(dataJson);
 
         if (!dataJson) return [];
 
         const data = JSON.parse(dataJson);
-        const albumId = data.albumId
+        const artistId = data.artistId
 
-        const url = `https://api.spotify.com/v1/albums/${albumId}/tracks?limit=10`;
+        const url = `https://api.spotify.com/v1/artists/${artistId}/albums?limit=10`;
 
         const result = await fetch(url, {
             headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -221,40 +186,19 @@ export default function Page() {
 
         console.log(json);
 
-        const getReleaseDateUrl = `https://api.spotify.com/v1/albums/${albumId}`;
-
-        const resultDate = await fetch(getReleaseDateUrl, {
-            headers: { Authorization: `Bearer ${spotify_access_token}` }
-        });
-
-        const dateJson = await resultDate.json();
-
-        console.log(dateJson);
-
-        const release_date = dateJson.release_date;
-        console.log(release_date);
-
-        const total_tracks = dateJson.total_tracks;
-
         let items: item[] = [];
 
         if (json.items) {
-            items = json.items.map((t: any) => ({
-                artistId: t.artists[0]?.id,
-                artistName: t.artists[0]?.name,
-                albumId: data.albumId,
-                albumName: data.albumName,
-                albumImage: data.albumImage,
-                albumReleaseDate: release_date,
-                albumTotalTracks: total_tracks,
-                trackId: t.id,
-                trackName: t.name,
-                trackNumber: t.track_number,
-                durationMs: t.duration_ms,
+            items = json.items.map((album: any) => ({
+                artistName: album.artists?.[0]?.name ?? "",
+                albumId: album.id,
+                albumName: album.name,
+                albumImage: album.images?.[0]?.url ?? "",
             }));
         }
 
-        const responseTotal = dateJson.total_tracks;
+        console.log(json);
+        const responseTotal = json.total;
         console.log(responseTotal);
 
         let pageCount = Math.ceil(responseTotal / 10);
@@ -265,27 +209,29 @@ export default function Page() {
     }
 
     // どのAPIを使うか判定して返す関数
-    function shouldFetchAlbum(): boolean {
-        return sessionStorage.getItem("selectedAlbum") !== null;
+    function shouldFetchArtist(): boolean {
+        return sessionStorage.getItem("selectedArtist") !== null;
     }
 
     async function fetchMusicData(): Promise<item[]> {
-        if (shouldFetchAlbum()) {
-            return await getAlbumMusic();
+        if (shouldFetchArtist()) {
+            return await getArtistMusic();
         } else {
             return await getMusic();
         }
     }
 
-    // useEffect
+    // 🔹 useEffect で初回取得
     React.useEffect(() => {
         fetchMusicData()
             .then(data => setResults(data))
             .catch(err => console.error("fetchMusicData failed:", err));
     }, []);
+
     const handleCardClick = (item: item) => {
-        sessionStorage.setItem("selectedItem", JSON.stringify(item));
-        router.push('../../review');
+        sessionStorage.setItem("selectedAlbum", JSON.stringify(item));
+        console.log(item);
+        router.push('../search/track');
     };
 
     return (
@@ -313,11 +259,11 @@ export default function Page() {
                                         component="img"
                                         sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
                                         image={item.albumImage}
-                                        alt={item.trackName}
+                                        alt={item.albumName}
                                     />
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight="bold">
-                                            {item.trackName}
+                                            {item.albumName}
                                         </Typography>
                                         <Box sx={{ height: 16 }} /> {/*空白追加*/}
                                         <Typography variant="body2" color="text.secondary">
@@ -331,8 +277,8 @@ export default function Page() {
                     <Box sx={{ height: 16 }} /> {/*空白追加*/}
                     <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
                         onChange={async (event, page) => {
-                            if (shouldFetchAlbum()) {
-                                const items = await handlePageChangeAlbum(page);
+                            if (shouldFetchArtist()) {
+                                const items = await handlePageChangeArtist(page);
                                 setResults(items);
                             } else {
                                 const items = await handlePageChange(page);

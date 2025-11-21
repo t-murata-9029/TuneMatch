@@ -8,32 +8,92 @@ import {
     NoSsr,
     RadioGroup,
     Radio,
+    Slider,
+    FormControl,
+    FormHelperText,
+    FormGroup,
+    FormControlLabel
 } from '@mui/material';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import React from 'react';
-import { createTheme } from '@mui/material/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { postSearchState } from '../types/forms/search';
 import { useRouter } from 'next/navigation';
 
 export default function page() {
 
     const router = useRouter();
-
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+    // 🔹 テーマ内で TextField の border スタイルを統一
+    const theme = React.useMemo(
+        () =>
+            createTheme({
+                palette: { mode: prefersDarkMode ? 'dark' : 'light' },
+                components: {
+                    MuiOutlinedInput: {
+                        styleOverrides: {
+                            root: {
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: prefersDarkMode ? '#ffffff' : '#000000',
+                                    borderWidth: 2,
+                                },
+                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
+                                },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+        [prefersDarkMode]
+    );
 
     const [type, setType] = React.useState('');
     const [query, setQuery] = React.useState('');
+    const [errors, setErrors] = React.useState({ query: false, type: false });
+
+    // 🔹 入力や選択時にエラーを消す
+    const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setQuery(e.target.value);
+        if (errors.query && e.target.value.trim() !== "") {
+            setErrors((prev) => ({ ...prev, query: false }));
+        }
+    };
+
+    const handleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setType(e.target.value);
+        if (errors.type && e.target.value !== "") {
+            setErrors((prev) => ({ ...prev, type: false }));
+        }
+    };
 
     const handleSubmit = () => {
-        const queryData: postSearchState = {
-            type: type,
-            query: query
+        const newErrors = {
+            query: query.trim() === "",
+            type: type === "",
         };
+        setErrors(newErrors);
+
+        if (newErrors.query || newErrors.type) return;
+
+        const queryData: postSearchState = { type, query };
         sessionStorage.setItem('queryData', JSON.stringify(queryData));
-        router.push('/search/track');
+
+        if (type === 'track') router.push('/search/track');
+        else if (type === 'album') router.push('/search/album');
+        else router.push('/search/artist');
     };
+
+    useEffect(() => {
+        sessionStorage.removeItem("selectedAlbum");
+        sessionStorage.removeItem("selectedArtist");
+    }, []);
 
     return (
         <NoSsr>
@@ -48,23 +108,31 @@ export default function page() {
                     }}
                 >
                     <FormGroup sx={{ mb: 6 }}>
-                        <RadioGroup
-                            row name="searchType"
-                            defaultValue="artist"
-                            value={type}
-                            onChange={(e) => setType(e.target.value)}>
-                            <FormControlLabel value="artist" control={<Radio />} label="アーティスト" />
-                            <FormControlLabel value="album" control={<Radio />} label="アルバム" />
-                            <FormControlLabel value="track" control={<Radio />} label="曲" />
-                        </RadioGroup>
-                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                        <FormControl required error={errors.type}>
+                            {errors.type && <FormHelperText>どれかを選択してください</FormHelperText>}
+                            <RadioGroup
+                                row
+                                name="searchType"
+                                value={type}
+                                onChange={handleTypeChange}
+                            >
+                                <FormControlLabel value="artist" control={<Radio />} label="アーティスト" />
+                                <FormControlLabel value="album" control={<Radio />} label="アルバム" />
+                                <FormControlLabel value="track" control={<Radio />} label="曲" />
+                            </RadioGroup>
+                        </FormControl>
+
+                        <Box sx={{ height: 16 }} /> {/* 空白 */}
                         <TextField
-                            id="outlined-basic"
                             label="検索文字列"
                             variant="outlined"
                             value={query}
-                            onChange={(e) => setQuery(e.target.value)} />
-                        <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                            onChange={handleQueryChange}
+                            error={errors.query}
+                            helperText={errors.query ? "検索文字列を入力してください" : ""}
+                        />
+
+                        <Box sx={{ height: 16 }} /> {/* 空白 */}
                         <Button
                             variant="outlined"
                             onClick={handleSubmit}

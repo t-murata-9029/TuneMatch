@@ -1,15 +1,60 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { postReviewState } from '../../types/forms/review';
+import { postReviewState } from '../../../types/forms/review';
 import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
 import { constants } from 'buffer';
+import { Box, Button, createTheme, CssBaseline, NoSsr, ThemeProvider, Typography, useMediaQuery } from '@mui/material';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+
+//表示するデータ用
+interface aaa {
+  rhythm?: number,
+  melody?: number,
+  lyric?: number,
+  sentiment_positivity?: number,
+  sentiment_negativity?: number,
+}
 
 export default function ReviewAnalysisPage() {
-  const [aiText, setAiText] = useState('');
+
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+  // 🔹 テーマ
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: { mode: prefersDarkMode ? 'dark' : 'light' },
+        components: {
+          MuiOutlinedInput: {
+            styleOverrides: {
+              root: {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#ffffff' : '#000000',
+                  borderWidth: 2,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#64b5f6' : '#42a5f5',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: prefersDarkMode ? '#2196f3' : '#1565c0',
+                },
+              },
+            },
+          },
+        },
+      }),
+    [prefersDarkMode]
+  );
+
+  const router = useRouter();
+
   const hasRun = useRef(false);
+
+  const [reviewResult, setReviewResult] = useState<aaa>();
 
   const dataJson = sessionStorage.getItem('selectedItem');
   const selectMusic = dataJson ? JSON.parse(dataJson) : null;
@@ -43,6 +88,10 @@ export default function ReviewAnalysisPage() {
     10.extracted_moods: レビューから読み取れるムードや雰囲気、音楽に求めるシーンや用途
     11.extracted_keywords: その他の重要な特徴キーワード、具体的な音楽の嗜好
 
+    9〜11は、必ず string の配列(string[])で返してください。
+    単一の要素であっても、配列にしてください。
+    例： ["疾走感"] ← OK / "疾走感" ← NG
+    空の場合も空配列にしてください。[] ← OK / null ← NG
     出力は JSON のみで。余計な装飾はなし。
     
     `
@@ -267,17 +316,63 @@ export default function ReviewAnalysisPage() {
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
-      // そのまま JSON として state にセット
-      setAiText('');
+      const reviewData2: aaa = {
+        rhythm,
+        melody,
+        lyric,
+        sentiment_positivity,
+        sentiment_negativity,
+      }
+
+      sessionStorage.removeItem("selectedItem");
+      sessionStorage.removeItem("reviewData");
+      sessionStorage.removeItem("queryData");
+      sessionStorage.removeItem("selectedAlbum");
+      sessionStorage.removeItem("selectedArtist");
+
+      setReviewResult(reviewData2);
     }
 
     callApi();
   }, []);
 
+  const handleSubmit = () => {
+    router.push('../../dashboard');
+  };
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>受け取り画面</h1>
-      <pre>{aiText}</pre>
-    </div>
+    <NoSsr>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            p: 2,
+          }}
+        >
+          <div style={{ padding: 20 }}>
+            <h1>受け取り画面</h1>
+            <Typography> 歌詞：{reviewResult?.lyric}</Typography>
+            <Typography> メロディー：{reviewResult?.melody}</Typography>
+            <Typography> リズム：{reviewResult?.rhythm}</Typography>
+            <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
+            <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
+          </div>
+
+          <Button
+            variant="outlined"
+            onClick={handleSubmit}
+            sx={{ width: 'auto', px: 3, py: 1.5 }}
+          >
+            ダッシュボード
+          </Button>
+        </Box>
+      </ThemeProvider>
+    </NoSsr>
+
   );
 }
