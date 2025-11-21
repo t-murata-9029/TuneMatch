@@ -223,7 +223,12 @@ export default function Page() {
                 <Grid container spacing={2} direction="column" alignItems="center">
                     {results.map((item, index) => (
                         <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
-                            <Card sx={{ display: 'flex', alignItems: 'center', p: 2 }}
+                            <Card sx={{
+                                display: 'flex', alignItems: 'center', p: 2, cursor: 'pointer', transition: '0.3s',
+                                '&:hover': {
+                                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                                },
+                            }}
                                 onClick={() => handleCardClick(item)}>
                                 <CardMedia
                                     component="img"

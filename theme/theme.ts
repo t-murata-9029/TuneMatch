@@ -9,7 +9,7 @@ const main_theme = createTheme({
         background: {
             default: '#ffffffff',
         },
-        text: { primary: '#FF7F50' },
+        text: { primary: '#000000' },
     }, 
     components: {
         // 既存のボタン設定
