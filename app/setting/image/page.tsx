@@ -34,12 +34,11 @@ export default function ProfileEditPage() {
 
             // Supabase Storageにアップロード
             const { error: uploadError } = await supabase.storage
-                .from(BUCKET_NAME)
+                .from('user_images') // バケット名
                 .upload(filePath, file, {
-                    cacheControl: '3600', // キャッシュ設定
-                    upsert: true, // 既存のファイルを上書き
+                    upsert: true,
                 });
-
+                
             if (uploadError) {
                 throw uploadError;
             }
