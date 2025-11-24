@@ -11,7 +11,8 @@ import {
     Typography,
     Grid,
     Pagination,
-    CardActionArea,
+    Breadcrumbs,
+    Link,
 } from '@mui/material';
 import React from 'react';
 import getToken from '@/utils/spotify/getToken';
@@ -105,6 +106,20 @@ export default function Page() {
         return items;
     }
 
+    const breadcrumbs = [
+        <Link underline="hover" key="1" color="inherit" href="/search">
+            Search
+        </Link>,
+        <Link underline="none"
+            key="2"
+            color="text.primary"
+            aria-current="page"
+            onClick={(e) => e.preventDefault()} // クリック無効
+        >
+            Artist
+        </Link>
+    ];
+
     // 🔹 useEffect で初回取得
     React.useEffect(() => {
         const fetchArtist = async () => {
@@ -126,6 +141,12 @@ export default function Page() {
 
     return (
         <NoSsr>
+            <Box sx={{ height: 16 }} /> {/*空白追加*/}
+            <Box sx={{ pl: 2, mb: 1 }}>
+                <Breadcrumbs separator="›" aria-label="breadcrumb">
+                    {breadcrumbs}
+                </Breadcrumbs>
+            </Box>
             <Box
                 sx={{
                     display: 'flex',
