@@ -163,6 +163,7 @@ export default function Page() {
                 <Grid container spacing={2} direction="column" alignItems="center">
                     {results.map((item, index) => (
                         <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
+                            
                             <Card sx={{
                                 display: 'flex', alignItems: 'center', p: 2, cursor: 'pointer', transition: '0.3s',
                                 '&:hover': {

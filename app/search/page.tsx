@@ -104,7 +104,7 @@ export default function page() {
 
                         <Box sx={{ height: 16 }} /> {/* 空白 */}
                         <Button
-                            variant="outlined"
+                            variant="contained"
                             onClick={handleSubmit}
                             sx={{ width: 'auto', alignSelf: 'flex-end', px: 3, py: 1.5 }}
                         >

@@ -18,11 +18,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import AudiotrackIcon from '@mui/icons-material/Audiotrack';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import MessageIcon from '@mui/icons-material/Message';
-import { getCurrentUser } from '@/lib/action';
-import { supabase } from '@/lib/supabase.cliant';
-import { useEffect, useState } from 'react';
-import { error } from 'console';
-import main_theme from '@/theme/theme';
 
 const MenuPage = () => {
     const theme = useTheme();
