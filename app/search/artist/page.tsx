@@ -60,11 +60,6 @@ async function getArtistNumber(page: number): Promise<item[]> {
     return items;
 }
 
-function handleClick(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) {
-    //event.preventDefault();
-    console.info('You clicked a breadcrumb.');
-}
-
 export default function Page() {
     const router = useRouter();
 
@@ -113,7 +108,15 @@ export default function Page() {
     }
 
     const breadcrumbs = [
-        <Link underline="hover" key="1" color="inherit" href="artist" onClick={handleClick}>
+        <Link underline="hover" key="1" color="inherit" href="/search">
+            Search
+        </Link>,
+        <Link underline="none"
+            key="2"
+            color="text.primary"
+            aria-current="page"
+            onClick={(e) => e.preventDefault()} // クリック無効
+        >
             Artist
         </Link>
     ];
@@ -139,9 +142,12 @@ export default function Page() {
 
     return (
         <NoSsr>
-            <Breadcrumbs separator="›" aria-label="breadcrumb">
-                {breadcrumbs}
-            </Breadcrumbs>
+            <Box sx={{ height: 16 }} /> {/*空白追加*/}
+            <Box sx={{ pl: 2, mb: 1 }}>
+                <Breadcrumbs separator="›" aria-label="breadcrumb">
+                    {breadcrumbs}
+                </Breadcrumbs>
+            </Box>
             <Box
                 sx={{
                     display: 'flex',

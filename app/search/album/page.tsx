@@ -10,6 +10,8 @@ import {
     CardMedia,
     Typography,
     Grid,
+    Breadcrumbs,
+    Link,
 } from '@mui/material';
 import React from 'react';
 import { createTheme } from '@mui/material/styles';
@@ -97,6 +99,8 @@ export default function Page() {
     const [results, setResults] = React.useState<item[]>([]);
     const [pageCount, setPageCount] = React.useState<number>();
 
+    const [breadcrumbs, setBreadcrumbs] = React.useState<React.ReactNode[]>([]);
+
     // 🔹 Spotify API 取得関数
     async function getMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
@@ -131,6 +135,20 @@ export default function Page() {
         let pageCount = Math.ceil(responseTotal / 10);
 
         setPageCount(pageCount);
+
+        setBreadcrumbs([
+            <Link underline="hover" key="1" color="inherit" href="/search">
+                Search
+            </Link>,
+            <Link underline="none"
+                key="2"
+                color="text.primary"
+                aria-current="page"
+                onClick={(e) => e.preventDefault()} // クリック無効
+            >
+                Album
+            </Link>
+        ]);
 
         return items;
     }
@@ -176,6 +194,23 @@ export default function Page() {
 
         setPageCount(pageCount);
 
+        setBreadcrumbs([
+            <Link underline="hover" key="1" color="inherit" href="/search">
+                Search
+            </Link>,
+            <Link underline="hover" key="2" color="inherit" href="/search/artist">
+                Artist
+            </Link>,
+            <Link underline="none"
+                key="3"
+                color="text.primary"
+                aria-current="page"
+                onClick={(e) => e.preventDefault()} // クリック無効
+            >
+                Album
+            </Link>
+        ]);
+
         return items;
     }
 
@@ -207,6 +242,13 @@ export default function Page() {
 
     return (
         <NoSsr>
+            <Box sx={{ height: 16 }} /> {/*空白追加*/}
+            <Box sx={{ pl: 2, mb: 1 }}>
+            <Breadcrumbs separator="›" aria-label="breadcrumb">
+                {breadcrumbs}
+            </Breadcrumbs>
+            </Box>
+
             <CssBaseline />
             <Box
                 sx={{
@@ -262,6 +304,6 @@ export default function Page() {
                     }}
                 />
             </Box>
-        </NoSsr>
+        </NoSsr >
     );
 }

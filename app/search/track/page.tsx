@@ -11,6 +11,8 @@ import {
     Typography,
     Grid,
     Pagination,
+    Breadcrumbs,
+    Link,
 } from '@mui/material';
 import React from 'react';
 import getToken from '@/utils/spotify/getToken';
@@ -126,6 +128,8 @@ export default function Page() {
     const [pageCount, setPageCount] = React.useState<number>();
     const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
+    const [breadcrumbs, setBreadcrumbs] = React.useState<React.ReactNode[]>([]);
+
     // Spotify API 曲名から取得関数
     async function getMusic(): Promise<item[]> {
         const spotify_access_token = await getToken();
@@ -167,6 +171,20 @@ export default function Page() {
         let pageCount = Math.ceil(responseTotal / 10);
 
         setPageCount(pageCount);
+
+        setBreadcrumbs([
+            <Link underline="hover" key="1" color="inherit" href="/search">
+                Search
+            </Link>,
+            <Link underline="none"
+                key="2"
+                color="text.primary"
+                aria-current="page"
+                onClick={(e) => e.preventDefault()} // クリック無効
+            >
+                Track
+            </Link>
+        ]);
 
         return items;
     }
@@ -233,6 +251,45 @@ export default function Page() {
 
         setPageCount(pageCount);
 
+        if (sessionStorage.getItem("selectedArtist")) {
+            setBreadcrumbs([
+                <Link underline="hover" key="1" color="inherit" href="/search">
+                    Search
+                </Link>,
+                <Link underline="hover" key="2" color="inherit" href="/search/artist">
+                    Artist
+                </Link>,
+                <Link underline="hover" key="3" color="inherit" href="/search/album">
+                    Album
+                </Link>,
+                <Link underline="none"
+                    key="4"
+                    color="text.primary"
+                    aria-current="page"
+                    onClick={(e) => e.preventDefault()} // クリック無効
+                >
+                    Track
+                </Link>
+            ]);
+        } else {
+            setBreadcrumbs([
+                <Link underline="hover" key="1" color="inherit" href="/search">
+                    Search
+                </Link>,
+                <Link underline="hover" key="2" color="inherit" href="/search/album">
+                    Album
+                </Link>,
+                <Link underline="none"
+                    key="3"
+                    color="text.primary"
+                    aria-current="page"
+                    onClick={(e) => e.preventDefault()} // クリック無効
+                >
+                    Track
+                </Link>
+            ]);
+        }
+
         return items;
     }
 
@@ -262,6 +319,12 @@ export default function Page() {
 
     return (
         <NoSsr>
+            <Box sx={{ height: 16 }} /> {/*空白追加*/}
+            <Box sx={{ pl: 2, mb: 1 }}>
+                <Breadcrumbs separator="›" aria-label="breadcrumb">
+                    {breadcrumbs}
+                </Breadcrumbs>
+            </Box>
             <CssBaseline />
             <Box
                 sx={{
