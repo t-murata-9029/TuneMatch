@@ -31,12 +31,14 @@ export default function ProfileEditPage() {
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}.${fileExt}`;
             const filePath = `${userId}/${fileName}`;
+            const mimeType = file.type;
 
             // Supabase Storageにアップロード
             const { error: uploadError } = await supabase.storage
                 .from('user_images') // バケット名
                 .upload(filePath, file, {
                     upsert: true,
+                    contentType: mimeType,
                 });
                 
             if (uploadError) {
