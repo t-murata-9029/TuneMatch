@@ -40,26 +40,35 @@ export interface Music_reviews {
 }
 
 export interface Spotify_artist {
-  id: string; 
+  id: string;
   name: string;
   image_url: string;
   genres: string[];
 }
 
 export interface Spotify_album {
-  id: string; 
+  id: string;
   artist?: Spotify_artist;
   name: string;
   image_url: string;
-  release_date: Date; 
+  release_date: Date;
   total_tracks: number;
   tracks?: Spotify_track
 }
 
 export interface Spotify_track {
-  id: string; 
+  id: string;
   album_id: string;
   name: string;
   track_number: number;
   duration_ms: number;
+}
+
+export interface User_images {
+  id: number;
+  user_id: string;
+  image_url?: string;
+  priority?: number;
+  is_main_profile_image?: boolean;
+  uploaded_at?: Date;
 }

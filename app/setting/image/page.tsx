@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase.cliant";
 import { PhotoCamera } from "@mui/icons-material";
 import { Avatar, Button, CircularProgress, Typography } from "@mui/material";
 import { useState } from "react";
+import { User_images } from '@/types/db'
+import checkMainProfileImageExists from "@/utils/supabase/checkMainProfileImageExists";
 
 // supabaseのバケット名
 const BUCKET_NAME = "user_images";
@@ -18,7 +20,7 @@ export default function ProfileEditPage() {
         try {
             setLoading(true);
             const file = event.target.files?.[0];
-
+            
             if (!file) {
                 throw new Error('画像ファイルを選択してください。');
             }
@@ -26,24 +28,64 @@ export default function ProfileEditPage() {
             // userIdを取得
             const user = await getCurrentUser();
             const userId = user?.id;
+            if (userId == undefined) {
+                throw new Error('ユーザーIDの取得に失敗しました。');
+            }
 
             // ファイルの保存パスを決定 (例: avatars/user_id/timestamp.ext)
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
+            const fileName = `${userId}.${fileExt}`;
             const filePath = `${userId}/${fileName}`;
             const mimeType = file.type;
 
-            // Supabase Storageにアップロード
+            // SupabaseのStorageにアップロード
             const { error: uploadError } = await supabase.storage
                 .from('user_images') // バケット名
                 .upload(filePath, file, {
                     upsert: true,
                     contentType: mimeType,
                 });
-                
+
+            if (uploadError) {
+                throw uploadError;
+            }            
+            /*
+            // ファイルの保存パスを決定 (例: avatars/user_id/timestamp.ext)
+            const fileExt = file.name.split('.').pop();
+            const now = Date.now();
+            const fileName = `${now}.${fileExt}`;
+            const filePath = `${userId}/${fileName}`;
+            const mimeType = file.type;
+
+            // SupabaseのStorageにアップロード
+            const { error: uploadError } = await supabase.storage
+                .from('user_images') // バケット名
+                .upload(filePath, file, {
+                    upsert: true,
+                    contentType: mimeType,
+                });
+
             if (uploadError) {
                 throw uploadError;
             }
+
+            // DBのテーブルにも登録
+            const IsMainImage = await checkMainProfileImageExists(userId) != null;
+
+            const imageData: User_images = {
+                id: now,
+                user_id: userId,
+                image_url: filePath,
+                priority: 0,
+                is_main_profile_image: IsMainImage
+            }
+
+            const { error: insertError } = await supabase.from("user_images").insert(imageData);
+
+            if (insertError){
+                throw new Error("DBに画像を保存できませんでした。")
+            }
+            */
             // ファイルインプットをリセット
             event.target.value = '';
             console.log("upload成功");
