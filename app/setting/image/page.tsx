@@ -2,8 +2,8 @@
 
 import { getCurrentUser } from "@/lib/action";
 import { supabase } from "@/lib/supabase.cliant";
-import { PhotoCamera } from "@mui/icons-material";
-import { Avatar, Button, CircularProgress, Typography } from "@mui/material";
+import { Padding, PhotoCamera, Widgets } from "@mui/icons-material";
+import { Avatar, Box, Button, CircularProgress, Typography } from "@mui/material";
 import { useState } from "react";
 import { User_images } from '@/types/db'
 import checkMainProfileImageExists from "@/utils/supabase/checkMainProfileImageExists";
@@ -20,7 +20,7 @@ export default function ProfileEditPage() {
         try {
             setLoading(true);
             const file = event.target.files?.[0];
-            
+
             if (!file) {
                 throw new Error('画像ファイルを選択してください。');
             }
@@ -33,8 +33,7 @@ export default function ProfileEditPage() {
             }
 
             // ファイルの保存パスを決定 (例: avatars/user_id/timestamp.ext)
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${userId}.${fileExt}`;
+            const fileName = userId;
             const filePath = `${userId}/${fileName}`;
             const mimeType = file.type;
 
@@ -42,13 +41,15 @@ export default function ProfileEditPage() {
             const { error: uploadError } = await supabase.storage
                 .from('user_images') // バケット名
                 .upload(filePath, file, {
+                    cacheControl: '1',
                     upsert: true,
                     contentType: mimeType,
                 });
 
+            console.log("hi")
             if (uploadError) {
                 throw uploadError;
-            }            
+            }
             /*
             // ファイルの保存パスを決定 (例: avatars/user_id/timestamp.ext)
             const fileExt = file.name.split('.').pop();
@@ -99,24 +100,27 @@ export default function ProfileEditPage() {
 
     return (
         <>
-            <Button
-                variant="outlined"
-                component="label" // クリックでファイル選択ダイアログを開く
-                startIcon={loading ? <CircularProgress size={20} /> : <PhotoCamera />}
-                disabled={loading}
-            >
-                {loading ? 'アップロード中...' : '画像を選択'}
-                {/* 隠されたファイルインプット */}
-                <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleFileUpload}
-                />
-            </Button>
-            <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
-                PNGまたはJPEGファイルを選択してください。
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop:5}}>
+                <Avatar sx={{ width: 100, height: 100 }} alt="user image" src="https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/a9edc9a1-96bf-47f2-ad92-5ed0784f2ec6/a9edc9a1-96bf-47f2-ad92-5ed0784f2ec6" />
+                <Button
+                    variant="outlined"
+                    component="label" // クリックでファイル選択ダイアログを開く
+                    startIcon={loading ? <CircularProgress size={20} /> : <PhotoCamera />}
+                    disabled={loading}
+                >
+                    {loading ? 'アップロード中...' : '画像を選択'}
+                    {/* 隠されたファイルインプット */}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={handleFileUpload}
+                    />
+                </Button>
+                <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
+                    PNGまたはJPEGファイルを選択してください。
+                </Typography>
+            </Box>
         </>
     );
 }
