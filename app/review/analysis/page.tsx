@@ -9,6 +9,7 @@ import { constants } from 'buffer';
 import { Box, Button, createTheme, CssBaseline, NoSsr, Typography, useMediaQuery } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { userAgent } from 'next/server';
 
 //表示するデータ用
 interface aaa {
@@ -17,6 +18,38 @@ interface aaa {
   lyric?: number,
   sentiment_positivity?: number,
   sentiment_negativity?: number,
+}
+
+function calculateAverage(user_id: string) {
+
+  // 各数値化項目全権取得
+  try {
+
+    const { data: reviews, error: reviewError } = await supabase
+      .from("ai_analysis_results")
+      .select("id")
+      .eq("user_id", user_id)
+
+    if (reviewError) {
+      console.error(reviewError);
+      return;
+    }
+
+    console.log(reviews);
+
+    const reviewIds = reviews.map(r => r.id);
+
+    // 越川命名
+    let たけかわ;
+
+    for (const reviewId of reviewIds) {
+
+      try
+
+    }
+
+  }
+
 }
 
 export default function ReviewAnalysisPage() {
@@ -110,6 +143,8 @@ export default function ReviewAnalysisPage() {
       }
 
       const user_id = userData.id;
+
+      /*
 
       //アーティスト登録されているかチェック////////////////////////////////
       let artistResult = false;
@@ -259,6 +294,7 @@ export default function ReviewAnalysisPage() {
         console.error('Supabase insert failed music_reviews', err);
       }
 
+      // レビュー分析された数値の登録
       try {
 
         const { data: responseData, error } = await supabase
@@ -287,6 +323,51 @@ export default function ReviewAnalysisPage() {
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
+
+      */
+
+      // usersテーブル数値登録されてるかチェック
+      let zeroFlags;
+
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user_id)
+          .single()
+
+        const scoreKeys = [
+          "ai_vibe_score_rhythm",
+          "ai_vibe_score_melody",
+          "ai_vibe_score_lyric",
+          "ai_vibe_score_production",
+          "ai_vibe_score_emotional_intensity",
+          "ai_vibe_score_positivity",
+          "ai_vibe_score_detail_level"
+        ] as const
+
+        // true/false フラグ生成
+        zeroFlags = Object.fromEntries(
+          scoreKeys.map((key) => [
+            key,
+            Number(data[key]) === 0 // 0.00にも対応
+          ])
+        )
+
+      } catch (err) {
+        console.error("usersテーブル数値取得時エラー：", err);
+      }
+
+      const allZero = Object.values(zeroFlags ?? {}).every(Boolean);
+
+      // usersテーブル項目に数値が登録されていた場合
+      if (!allZero) {
+
+        calculateAverage(user_id);
+
+      }
+
+      // ここから下のコード仮で表示など
       const reviewData2: aaa = {
         rhythm,
         melody,
@@ -295,11 +376,13 @@ export default function ReviewAnalysisPage() {
         sentiment_negativity,
       }
 
+      /*
       sessionStorage.removeItem("selectedItem");
       sessionStorage.removeItem("reviewData");
       sessionStorage.removeItem("queryData");
       sessionStorage.removeItem("selectedAlbum");
       sessionStorage.removeItem("selectedArtist");
+      */
 
       setReviewResult(reviewData2);
     }
