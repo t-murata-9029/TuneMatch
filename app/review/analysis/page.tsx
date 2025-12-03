@@ -20,13 +20,25 @@ interface aaa {
   sentiment_negativity?: number,
 }
 
-function calculateAverage(user_id: string) {
+type scoreArray = {
+  focus_rhythm : number;
+  focus_melody : number;
+  focus_lyric : number;
+  focus_production : number;
+  emotional_intensity : number;
+  sentiment_positivity : number;
+  sentiment_negativity : number;
+  detail_level : number;
+
+}
+
+async function calculateAverage(user_id: string) {
 
   // 各数値化項目全権取得
   try {
 
     const { data: reviews, error: reviewError } = await supabase
-      .from("ai_analysis_results")
+      .from("music_reviews")
       .select("id")
       .eq("user_id", user_id)
 
@@ -39,18 +51,34 @@ function calculateAverage(user_id: string) {
 
     const reviewIds = reviews.map(r => r.id);
 
-    // 越川命名
-    let たけかわ;
+    let allScore;
 
     for (const reviewId of reviewIds) {
 
-      try
+      console.log("forのreviewId:", reviewId);
+
+      try{
+
+        let rowScore;
+
+        const { data : rowData , error : err} = await supabase
+          .from("ai_analysis_results")
+          .select("focus_rhythm , focus_melody , focus_lyric , focus_production , emotional_intensity , sentiment_positivity , sentiment_negativity , detail_level")
+          .eq("review_id" , reviewId)
+
+        console.log(rowData);
+
+      } catch (error){
+        console.error("review_idでscore取得時エラー：", error);
+      }
 
     }
 
+  } catch (error){
+    console.error(error);
   }
-
 }
+
 
 export default function ReviewAnalysisPage() {
 
@@ -101,6 +129,7 @@ export default function ReviewAnalysisPage() {
     `
 
     async function callApi() {
+      /*
 
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -134,6 +163,8 @@ export default function ReviewAnalysisPage() {
       const extracted_keywords = parsed["11"];
 
       let reviewId;
+
+      */
 
       // userData取得
       const userData = await getCurrentUser();
@@ -360,6 +391,8 @@ export default function ReviewAnalysisPage() {
 
       const allZero = Object.values(zeroFlags ?? {}).every(Boolean);
 
+      console.log(allZero);
+
       // usersテーブル項目に数値が登録されていた場合
       if (!allZero) {
 
@@ -367,6 +400,7 @@ export default function ReviewAnalysisPage() {
 
       }
 
+      /*
       // ここから下のコード仮で表示など
       const reviewData2: aaa = {
         rhythm,
@@ -376,15 +410,17 @@ export default function ReviewAnalysisPage() {
         sentiment_negativity,
       }
 
+
       /*
       sessionStorage.removeItem("selectedItem");
       sessionStorage.removeItem("reviewData");
       sessionStorage.removeItem("queryData");
       sessionStorage.removeItem("selectedAlbum");
       sessionStorage.removeItem("selectedArtist");
-      */
+      
 
       setReviewResult(reviewData2);
+      */
     }
 
     callApi();
