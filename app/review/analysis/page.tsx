@@ -251,7 +251,7 @@ export default function ReviewAnalysisPage() {
           .eq('id', selectMusic.albumId)
           .single();
 
-        artistResult = (count ?? 0) > 0;
+        albumResult = (count ?? 0) > 0;
       } catch (err) {
         console.error('アルバム取得エラー:', err);
       }
@@ -290,7 +290,7 @@ export default function ReviewAnalysisPage() {
           .eq('id', selectMusic.trackId)
           .single();
 
-        artistResult = (count ?? 0) > 0;
+        tracksResult = (count ?? 0) > 0;
       } catch (err) {
         console.error('トラック取得エラー:', err);
       }
