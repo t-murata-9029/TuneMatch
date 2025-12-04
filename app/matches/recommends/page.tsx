@@ -21,8 +21,10 @@ export default function page() {
                 'Content-Type': 'application/json',
             },
         })
-            const aaa = await response.json();
-            console.log(aaa["userList"]);
+            const userList = await response.json();
+            console.log(userList["targetUserId"]);
+            console.log(userList["users"]);
+            console.log(userList["results"]);
         };
 
         getData()

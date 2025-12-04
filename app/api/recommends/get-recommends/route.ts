@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 
         // 他のユーザーのベクトルを生成
         const otherVector = [
-            otherUser.ai_vibe_score_detail_score  || 0,
+            otherUser.ai_vibe_score_detail_score || 0,
             otherUser.ai_vibe_score_emotion || 0,
             otherUser.ai_vibe_score_lyric || 0,
             otherUser.ai_vibe_score_melody || 0,
@@ -83,9 +83,21 @@ export async function GET(request: Request) {
     // 類似度の高い順にソート
     similarityResults.sort((a, b) => b.similarityScore - a.similarityScore);
 
+    // 返還用の変数
+    const resultList: User[] = [];
+
+    // ソートした順番通りに、ユーザーを入れる
+    similarityResults.map(result => {
+        const user = userList.find(u => u.id === result.userId);
+        if (user) {
+            resultList.push(user)
+        }
+    })
+
     // マッチしたユーザーを返す
-    return NextResponse.json({ 
-      targetUserId: userId,
-      results: similarityResults 
+    return NextResponse.json({
+        targetUserId: userId,
+        users: resultList,
+        results: similarityResults,
     });
 }
