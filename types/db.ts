@@ -7,13 +7,14 @@ export interface User {
   profile_text?: string | null; // text
 
   /* AI関連 */
-  ai_vibe_score_rhythm?: number | null;
-  ai_vibe_score_melody?: number | null;
-  ai_vibe_score_lyric?: number | null;
-  ai_vibe_score_production?: number | null;
-  ai_vibe_score_emotion?: number | null;
-  ai_vibe_score_positivity?: number | null;
-  ai_vibe_score_detail_score?: number | null;
+  ai_vibe_score_rhythm?: number;
+  ai_vibe_score_melody?: number;
+  ai_vibe_score_lyric?: number;
+  ai_vibe_score_production?: number;
+  ai_vibe_score_emotion?: number;
+  ai_vibe_score_positivity?: number;
+  ai_vibe_score_negativity?: number;
+  ai_vibe_score_detail_score?: number;
 
   /* タイムスタンプ */
   last_login_at?: Date | string | null; // timestamptz
