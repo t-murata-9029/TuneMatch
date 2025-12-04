@@ -10,8 +10,8 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
 
     /** TODO
-     * 処理の中身書こうね、
-     * マッチ度いくつあったら、リターンするのか不明だから決めようね
+     * なんでマッチしたか、わからないから、わかるようにする。
+     * https://gemini.google.com/share/8685fd630788
      */
 
     // requestからuserIdを取得
