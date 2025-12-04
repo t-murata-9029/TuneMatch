@@ -17,7 +17,6 @@ import {
 import React from 'react';
 import getToken from '@/utils/spotify/getToken';
 import { useRouter } from 'next/navigation';
-import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
 
 type item = {
     artistName: string;
