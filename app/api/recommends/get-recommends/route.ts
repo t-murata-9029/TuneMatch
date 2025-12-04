@@ -84,7 +84,8 @@ export async function GET(request: Request) {
     similarityResults.sort((a, b) => b.similarityScore - a.similarityScore);
 
     // マッチしたユーザーを返す
-
-
-    return NextResponse.json({ userList: userList });
+    return NextResponse.json({ 
+      targetUserId: userId,
+      results: similarityResults 
+    });
 }
