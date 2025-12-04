@@ -387,6 +387,7 @@ export default function ReviewAnalysisPage() {
           "ai_vibe_score_production",
           "ai_vibe_score_emotional_intensity",
           "ai_vibe_score_positivity",
+          "ai_vibe_score_negativity",
           "ai_vibe_score_detail_level"
         ] as const
 
