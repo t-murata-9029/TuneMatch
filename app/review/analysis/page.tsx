@@ -13,23 +13,11 @@ import { userAgent } from 'next/server';
 
 //表示するデータ用
 interface aaa {
-  rhythm?: number,
-  melody?: number,
-  lyric?: number,
+  focus_rhythm?: number,
+  focus_melody?: number,
+  focus_lyric?: number,
   sentiment_positivity?: number,
   sentiment_negativity?: number,
-}
-
-type scoreArray = {
-  focus_rhythm : number;
-  focus_melody : number;
-  focus_lyric : number;
-  focus_production : number;
-  emotional_intensity : number;
-  sentiment_positivity : number;
-  sentiment_negativity : number;
-  detail_level : number;
-
 }
 
 async function calculateAverage(user_id: string) {
@@ -47,38 +35,70 @@ async function calculateAverage(user_id: string) {
       return;
     }
 
-    console.log(reviews);
-
     const reviewIds = reviews.map(r => r.id);
 
-    let allScore;
+    let totalScore: Record<string, number> = {
+      focus_rhythm: 0,
+      focus_melody: 0,
+      focus_lyric: 0,
+      focus_production: 0,
+      emotional_intensity: 0,
+      sentiment_positivity: 0,
+      sentiment_negativity: 0,
+      detail_level: 0,
+    };
 
-    for (const reviewId of reviewIds) {
+    try {
+      // reviewId をぶん回す場合の例
+      for (const reviewId of reviewIds) {
 
-      console.log("forのreviewId:", reviewId);
-
-      try{
-
-        let rowScore;
-
-        const { data : rowData , error : err} = await supabase
+        const { data: rowData, error } = await supabase
           .from("ai_analysis_results")
-          .select("focus_rhythm , focus_melody , focus_lyric , focus_production , emotional_intensity , sentiment_positivity , sentiment_negativity , detail_level")
-          .eq("review_id" , reviewId)
+          .select(
+            "focus_rhythm, focus_melody, focus_lyric, focus_production, emotional_intensity, sentiment_positivity, sentiment_negativity, detail_level"
+          )
+          .eq("review_id", reviewId);
 
-        console.log(rowData);
+        if (error) {
+          console.error("取得エラー:", error);
+          continue;
+        }
 
-      } catch (error){
-        console.error("review_idでscore取得時エラー：", error);
+        // rowData は配列で返る
+        if (rowData && rowData.length > 0) {
+
+          const rowScore = rowData[0] as Record<string, number>;
+
+          // 合計計算（string index のエラーはもう出ない）
+          for (const key of Object.keys(rowScore)) {
+            totalScore[key] = (totalScore[key] || 0) + rowScore[key];
+          }
+        }
       }
 
-    }
+      console.log("分析数値全権取得結果", totalScore);
 
-  } catch (error){
-    console.error(error);
+      const scoreKeys = Object.keys(totalScore); // ← これでOK
+
+      const reviewCount = reviewIds.length;
+
+      let averageScore: Record<string, number> = {};
+
+      for (const key of scoreKeys) {
+        averageScore[key] = Math.floor((totalScore[key] / reviewCount) * 100) / 100;;
+      }
+
+      console.log("平均値:", averageScore);
+
+      return averageScore;
+
+    } catch (error) {
+      console.error("分析数値合計時エラー：", error);
+    }
+  } catch (error) {
+    console.error("レビューid取得時エラー：", error);
   }
 }
-
 
 export default function ReviewAnalysisPage() {
 
@@ -129,7 +149,6 @@ export default function ReviewAnalysisPage() {
     `
 
     async function callApi() {
-      /*
 
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -150,11 +169,11 @@ export default function ReviewAnalysisPage() {
       const parsed = JSON.parse(clean);
 
       // こうすればOK
-      const rhythm = parsed["1"];
-      const melody = parsed["2"];
-      const lyric = parsed["3"];
-      const production = parsed["4"];
-      const intensity = parsed["5"];
+      const focus_rhythm = parsed["1"];
+      const focus_melody = parsed["2"];
+      const focus_lyric = parsed["3"];
+      const focus_production = parsed["4"];
+      const emotional_intensity = parsed["5"];
       const sentiment_positivity = parsed["6"];
       const sentiment_negativity = parsed["7"];
       const detail_level = parsed["8"];
@@ -164,8 +183,6 @@ export default function ReviewAnalysisPage() {
 
       let reviewId;
 
-      */
-
       // userData取得
       const userData = await getCurrentUser();
 
@@ -174,8 +191,6 @@ export default function ReviewAnalysisPage() {
       }
 
       const user_id = userData.id;
-
-      /*
 
       //アーティスト登録されているかチェック////////////////////////////////
       let artistResult = false;
@@ -333,11 +348,11 @@ export default function ReviewAnalysisPage() {
           .insert([
             {
               review_id: reviewId,
-              focus_rhythm: rhythm,
-              focus_melody: melody,
-              focus_lyric: lyric,
-              focus_production: production,
-              emotional_intensity: intensity,
+              focus_rhythm: focus_rhythm,
+              focus_melody: focus_melody,
+              focus_lyric: focus_lyric,
+              focus_production: focus_production,
+              emotional_intensity: emotional_intensity,
               sentiment_positivity: sentiment_positivity,
               sentiment_negativity: sentiment_negativity,
               detail_level: detail_level,
@@ -354,8 +369,6 @@ export default function ReviewAnalysisPage() {
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
-
-      */
 
       // usersテーブル数値登録されてるかチェック
       let zeroFlags;
@@ -393,34 +406,73 @@ export default function ReviewAnalysisPage() {
 
       console.log(allZero);
 
+      let averageScore;
+
       // usersテーブル項目に数値が登録されていた場合
       if (!allZero) {
 
-        calculateAverage(user_id);
+        averageScore = await calculateAverage(user_id);
+
+      } else {
+
+        averageScore = {
+          focus_rhythm,
+          focus_melody,
+          focus_lyric,
+          focus_production,
+          emotional_intensity,
+          sentiment_positivity,
+          sentiment_negativity,
+          detail_level
+        };
 
       }
 
-      /*
+      // usersテーブル分析数値項目更新
+      try {
+
+        const { data, error } = await supabase
+          .from("users")
+          .update({
+            ai_vibe_score_rhythm: averageScore?.focus_rhythm,
+            ai_vibe_score_melody: averageScore?.focus_melody,
+            ai_vibe_score_lyric: averageScore?.focus_lyric,
+            ai_vibe_score_production: averageScore?.focus_production,
+            ai_vibe_score_emotional_intensity: averageScore?.emotional_intensity,
+            ai_vibe_score_positivity: averageScore?.sentiment_positivity,
+            ai_vibe_score_negativity: averageScore?.sentiment_negativity,
+            ai_vibe_score_detail_level: averageScore?.detail_level,
+          })
+          .eq("id", user_id); // ← 更新対象
+
+        if (error) {
+          console.error("スコアUPDATEエラー:", error);
+        } else {
+          console.log("UPDATE成功:", data);
+        }
+
+      } catch (error) {
+        console.error("usersテーブルupdate時エラー：", error);
+      }
+
       // ここから下のコード仮で表示など
       const reviewData2: aaa = {
-        rhythm,
-        melody,
-        lyric,
+        focus_rhythm,
+        focus_melody,
+        focus_lyric,
         sentiment_positivity,
         sentiment_negativity,
       }
 
 
-      /*
       sessionStorage.removeItem("selectedItem");
       sessionStorage.removeItem("reviewData");
       sessionStorage.removeItem("queryData");
       sessionStorage.removeItem("selectedAlbum");
       sessionStorage.removeItem("selectedArtist");
-      
+
 
       setReviewResult(reviewData2);
-      */
     }
 
     callApi();
@@ -445,9 +497,9 @@ export default function ReviewAnalysisPage() {
       >
         <div style={{ padding: 20 }}>
           <h1>受け取り画面</h1>
-          <Typography> 歌詞：{reviewResult?.lyric}</Typography>
-          <Typography> メロディー：{reviewResult?.melody}</Typography>
-          <Typography> リズム：{reviewResult?.rhythm}</Typography>
+          <Typography> 歌詞：{reviewResult?.focus_lyric}</Typography>
+          <Typography> メロディー：{reviewResult?.focus_melody}</Typography>
+          <Typography> リズム：{reviewResult?.focus_rhythm}</Typography>
           <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
           <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
         </div>
