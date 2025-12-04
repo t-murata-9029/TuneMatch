@@ -113,9 +113,43 @@ export default function Page() {
                     p: 2,
                 }}
             >
-                
-
-
+                マッチ者リスト
+                <Box sx={{ height: 16 }} />
+                <Grid container spacing={2} direction="column" alignItems="center">
+                    {results.map((item, index) => (
+                        <Grid key={index} sx={{ width: { xs: '90%', sm: '100%', md: '100%' } }}>
+                            <Card
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    p: 2,
+                                    cursor: 'pointer',
+                                    transition: '0.3s',
+                                    '&:hover': {
+                                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                                    },
+                                }}
+                                onClick={() => handleCardClick(item)}
+                            >
+                                <CardMedia
+                                    component="img"
+                                    sx={{ width: 100, height: 100, borderRadius: 2, mr: 3 }}
+                                    image={item.partnerImage}
+                                    alt={item.partnerName}
+                                />
+                                <CardContent>
+                                    <Typography variant="subtitle1" fontWeight="bold">
+                                        {item.partnerName}
+                                    </Typography>
+                                    <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                                    <Typography variant="body2" fontWeight="text.secondary">
+                                        マッチ度：{item.matchRate}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
             </Box>
         </NoSsr>
     );
