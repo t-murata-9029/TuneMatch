@@ -9,14 +9,95 @@ import { constants } from 'buffer';
 import { Box, Button, createTheme, CssBaseline, NoSsr, Typography, useMediaQuery } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { userAgent } from 'next/server';
 
 //表示するデータ用
 interface aaa {
-  rhythm?: number,
-  melody?: number,
-  lyric?: number,
+  focus_rhythm?: number,
+  focus_melody?: number,
+  focus_lyric?: number,
   sentiment_positivity?: number,
   sentiment_negativity?: number,
+}
+
+async function calculateAverage(user_id: string) {
+
+  // 各数値化項目全権取得
+  try {
+
+    const { data: reviews, error: reviewError } = await supabase
+      .from("music_reviews")
+      .select("id")
+      .eq("user_id", user_id)
+
+    if (reviewError) {
+      console.error(reviewError);
+      return;
+    }
+
+    const reviewIds = reviews.map(r => r.id);
+
+    let totalScore: Record<string, number> = {
+      focus_rhythm: 0,
+      focus_melody: 0,
+      focus_lyric: 0,
+      focus_production: 0,
+      emotional_intensity: 0,
+      sentiment_positivity: 0,
+      sentiment_negativity: 0,
+      detail_level: 0,
+    };
+
+    try {
+      // reviewId をぶん回す場合の例
+      for (const reviewId of reviewIds) {
+
+        const { data: rowData, error } = await supabase
+          .from("ai_analysis_results")
+          .select(
+            "focus_rhythm, focus_melody, focus_lyric, focus_production, emotional_intensity, sentiment_positivity, sentiment_negativity, detail_level"
+          )
+          .eq("review_id", reviewId);
+
+        if (error) {
+          console.error("取得エラー:", error);
+          continue;
+        }
+
+        // rowData は配列で返る
+        if (rowData && rowData.length > 0) {
+
+          const rowScore = rowData[0] as Record<string, number>;
+
+          // 合計計算（string index のエラーはもう出ない）
+          for (const key of Object.keys(rowScore)) {
+            totalScore[key] = (totalScore[key] || 0) + rowScore[key];
+          }
+        }
+      }
+
+      console.log("分析数値全権取得結果", totalScore);
+
+      const scoreKeys = Object.keys(totalScore); // ← これでOK
+
+      const reviewCount = reviewIds.length;
+
+      let averageScore: Record<string, number> = {};
+
+      for (const key of scoreKeys) {
+        averageScore[key] = Math.floor((totalScore[key] / reviewCount) * 100) / 100;;
+      }
+
+      console.log("平均値:", averageScore);
+
+      return averageScore;
+
+    } catch (error) {
+      console.error("分析数値合計時エラー：", error);
+    }
+  } catch (error) {
+    console.error("レビューid取得時エラー：", error);
+  }
 }
 
 export default function ReviewAnalysisPage() {
@@ -88,11 +169,11 @@ export default function ReviewAnalysisPage() {
       const parsed = JSON.parse(clean);
 
       // こうすればOK
-      const rhythm = parsed["1"];
-      const melody = parsed["2"];
-      const lyric = parsed["3"];
-      const production = parsed["4"];
-      const intensity = parsed["5"];
+      const focus_rhythm = parsed["1"];
+      const focus_melody = parsed["2"];
+      const focus_lyric = parsed["3"];
+      const focus_production = parsed["4"];
+      const emotional_intensity = parsed["5"];
       const sentiment_positivity = parsed["6"];
       const sentiment_negativity = parsed["7"];
       const detail_level = parsed["8"];
@@ -170,7 +251,7 @@ export default function ReviewAnalysisPage() {
           .eq('id', selectMusic.albumId)
           .single();
 
-        artistResult = (count ?? 0) > 0;
+        albumResult = (count ?? 0) > 0;
       } catch (err) {
         console.error('アルバム取得エラー:', err);
       }
@@ -209,7 +290,7 @@ export default function ReviewAnalysisPage() {
           .eq('id', selectMusic.trackId)
           .single();
 
-        artistResult = (count ?? 0) > 0;
+        tracksResult = (count ?? 0) > 0;
       } catch (err) {
         console.error('トラック取得エラー:', err);
       }
@@ -259,6 +340,7 @@ export default function ReviewAnalysisPage() {
         console.error('Supabase insert failed music_reviews', err);
       }
 
+      // レビュー分析された数値の登録
       try {
 
         const { data: responseData, error } = await supabase
@@ -266,11 +348,11 @@ export default function ReviewAnalysisPage() {
           .insert([
             {
               review_id: reviewId,
-              focus_rhythm: rhythm,
-              focus_melody: melody,
-              focus_lyric: lyric,
-              focus_production: production,
-              emotional_intensity: intensity,
+              focus_rhythm: focus_rhythm,
+              focus_melody: focus_melody,
+              focus_lyric: focus_lyric,
+              focus_production: focus_production,
+              emotional_intensity: emotional_intensity,
               sentiment_positivity: sentiment_positivity,
               sentiment_negativity: sentiment_negativity,
               detail_level: detail_level,
@@ -287,19 +369,109 @@ export default function ReviewAnalysisPage() {
       } catch (err) {
         console.error('Supabase insert failed ai_analysis', err);
       }
+
+      // usersテーブル数値登録されてるかチェック
+      let zeroFlags;
+
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user_id)
+          .single()
+
+        const scoreKeys = [
+          "ai_vibe_score_rhythm",
+          "ai_vibe_score_melody",
+          "ai_vibe_score_lyric",
+          "ai_vibe_score_production",
+          "ai_vibe_score_emotional_intensity",
+          "ai_vibe_score_positivity",
+          "ai_vibe_score_negativity",
+          "ai_vibe_score_detail_level"
+        ] as const
+
+        // true/false フラグ生成
+        zeroFlags = Object.fromEntries(
+          scoreKeys.map((key) => [
+            key,
+            Number(data[key]) === 0 // 0.00にも対応
+          ])
+        )
+
+      } catch (err) {
+        console.error("usersテーブル数値取得時エラー：", err);
+      }
+
+      const allZero = Object.values(zeroFlags ?? {}).every(Boolean);
+
+      console.log(allZero);
+
+      let averageScore;
+
+      // usersテーブル項目に数値が登録されていた場合
+      if (!allZero) {
+
+        averageScore = await calculateAverage(user_id);
+
+      } else {
+
+        averageScore = {
+          focus_rhythm,
+          focus_melody,
+          focus_lyric,
+          focus_production,
+          emotional_intensity,
+          sentiment_positivity,
+          sentiment_negativity,
+          detail_level
+        };
+
+      }
+
+      // usersテーブル分析数値項目更新
+      try {
+
+        const { data, error } = await supabase
+          .from("users")
+          .update({
+            ai_vibe_score_rhythm: averageScore?.focus_rhythm,
+            ai_vibe_score_melody: averageScore?.focus_melody,
+            ai_vibe_score_lyric: averageScore?.focus_lyric,
+            ai_vibe_score_production: averageScore?.focus_production,
+            ai_vibe_score_emotional_intensity: averageScore?.emotional_intensity,
+            ai_vibe_score_positivity: averageScore?.sentiment_positivity,
+            ai_vibe_score_negativity: averageScore?.sentiment_negativity,
+            ai_vibe_score_detail_level: averageScore?.detail_level,
+          })
+          .eq("id", user_id); // ← 更新対象
+
+        if (error) {
+          console.error("スコアUPDATEエラー:", error);
+        } else {
+          console.log("UPDATE成功:", data);
+        }
+
+      } catch (error) {
+        console.error("usersテーブルupdate時エラー：", error);
+      }
+
+      // ここから下のコード仮で表示など
       const reviewData2: aaa = {
-        rhythm,
-        melody,
-        lyric,
+        focus_rhythm,
+        focus_melody,
+        focus_lyric,
         sentiment_positivity,
         sentiment_negativity,
       }
+
 
       sessionStorage.removeItem("selectedItem");
       sessionStorage.removeItem("reviewData");
       sessionStorage.removeItem("queryData");
       sessionStorage.removeItem("selectedAlbum");
       sessionStorage.removeItem("selectedArtist");
+
 
       setReviewResult(reviewData2);
     }
@@ -326,9 +498,9 @@ export default function ReviewAnalysisPage() {
       >
         <div style={{ padding: 20 }}>
           <h1>受け取り画面</h1>
-          <Typography> 歌詞：{reviewResult?.lyric}</Typography>
-          <Typography> メロディー：{reviewResult?.melody}</Typography>
-          <Typography> リズム：{reviewResult?.rhythm}</Typography>
+          <Typography> 歌詞：{reviewResult?.focus_lyric}</Typography>
+          <Typography> メロディー：{reviewResult?.focus_melody}</Typography>
+          <Typography> リズム：{reviewResult?.focus_rhythm}</Typography>
           <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
           <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
         </div>

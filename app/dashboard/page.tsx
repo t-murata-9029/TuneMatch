@@ -40,7 +40,7 @@ const MenuPage = () => {
             title: 'メッセージ',
             description: 'マッチした人とメッセージをします。',
             icon: <MessageIcon sx={{ fontSize: 40 }} />,
-            href: '#'
+            href: '/matches'
         },
         {
             title: 'マイページ',

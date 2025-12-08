@@ -165,7 +165,7 @@ export default function Page() {
         }
 
         console.log(json);
-        const responseTotal = json.total_tracks;
+        const responseTotal = json.tracks.total;
         console.log(responseTotal);
 
         let pageCount = Math.ceil(responseTotal / 10);
