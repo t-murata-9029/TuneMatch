@@ -25,6 +25,21 @@ export interface User {
   spotify_refresh_token?: string | null; // text
 }
 
+/**
+ * VibeScoreVector
+ * 8次元のvibe scoreを表すベクトルオブジェクトの型
+ */
+export interface VibeScoreVector {
+  detail: number;
+  emotional: number;
+  lyric: number;
+  melody: number;
+  negativity: number;
+  positivity: number;
+  production: number;
+  rhythm: number;
+}
+
 export interface Spotify_app_token {
   access_token: string;
   expires_in: number;

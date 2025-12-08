@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase.server";
-import { User } from "@/types/db";
-import calculateCosineSimilarity from "@/utils/recommends/calculateCosineSimilarity";
+import { User, VibeScoreVector } from "@/types/db";
+import { calculateCosineSimilarityFromVector } from "@/utils/recommends/calculateCosineSimilarity";
+import { findSimilarVibeScores } from "@/utils/recommends/findSimilarVibeScores";
+
 import { NextResponse } from "next/server";
 
 /**
@@ -10,8 +12,8 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
 
     /** TODO
-     * 処理の中身書こうね、
-     * マッチ度いくつあったら、リターンするのか不明だから決めようね
+     * なんでマッチしたか、わからないから、わかるようにする。
+     * https://gemini.google.com/share/8685fd630788
      */
 
     // requestからuserIdを取得
@@ -39,17 +41,18 @@ export async function GET(request: Request) {
     }
 
     // ターゲットユーザーのベクトルを生成
-    const targetVector = [
-        targetUser.ai_vibe_score_detail_score || 0,
-        targetUser.ai_vibe_score_emotion || 0,
-        targetUser.ai_vibe_score_lyric || 0,
-        targetUser.ai_vibe_score_melody || 0,
-        targetUser.ai_vibe_score_negativity || 0,
-        targetUser.ai_vibe_score_positivity || 0,
-        targetUser.ai_vibe_score_production || 0,
-        targetUser.ai_vibe_score_rhythm || 0
-    ];
+    const targetVector: VibeScoreVector = {
+        detail: targetUser.ai_vibe_score_detail_score || 0,
+        emotional: targetUser.ai_vibe_score_emotion || 0,
+        lyric: targetUser.ai_vibe_score_lyric || 0,
+        melody: targetUser.ai_vibe_score_melody || 0,
+        negativity: targetUser.ai_vibe_score_negativity || 0,
+        positivity: targetUser.ai_vibe_score_positivity || 0,
+        production: targetUser.ai_vibe_score_production || 0,
+        rhythm: targetUser.ai_vibe_score_rhythm || 0
+    };
 
+    // 変換する用の配列、userIdと、マッチ度を含む
     const similarityResults = [];
 
     // 取得したユーザーと、自身のマッチ度を計算
@@ -60,32 +63,48 @@ export async function GET(request: Request) {
         }
 
         // 他のユーザーのベクトルを生成
-        const otherVector = [
-            otherUser.ai_vibe_score_detail_score  || 0,
-            otherUser.ai_vibe_score_emotion || 0,
-            otherUser.ai_vibe_score_lyric || 0,
-            otherUser.ai_vibe_score_melody || 0,
-            otherUser.ai_vibe_score_negativity || 0,
-            otherUser.ai_vibe_score_positivity || 0,
-            otherUser.ai_vibe_score_production || 0,
-            otherUser.ai_vibe_score_rhythm || 0
-        ];
+        const otherVector: VibeScoreVector = {
+            detail: otherUser.ai_vibe_score_detail_score || 0,
+            emotional: otherUser.ai_vibe_score_emotion || 0,
+            lyric: otherUser.ai_vibe_score_lyric || 0,
+            melody: otherUser.ai_vibe_score_melody || 0,
+            negativity: otherUser.ai_vibe_score_negativity || 0,
+            positivity: otherUser.ai_vibe_score_positivity || 0,
+            production: otherUser.ai_vibe_score_production || 0,
+            rhythm: otherUser.ai_vibe_score_rhythm || 0
+        };
 
         // コサイン類似度を計算
-        const similarity = calculateCosineSimilarity(targetVector, otherVector);
+        const cosineSimilarity = calculateCosineSimilarityFromVector(targetVector, otherVector);
+
+        // ユーザー間で似ている項目を探す
+        const matchReasons = findSimilarVibeScores(targetVector, otherVector);
 
         similarityResults.push({
             userId: otherUser.id,
-            similarityScore: parseFloat(similarity.toFixed(4)), // 小数点以下4桁に丸める
+            matchReasons: matchReasons,
+            similarityScore: parseFloat(cosineSimilarity.toFixed(4)), // 小数点以下4桁に丸める
         });
     }
 
     // 類似度の高い順にソート
     similarityResults.sort((a, b) => b.similarityScore - a.similarityScore);
 
+    // 返還用の変数
+    const resultList: User[] = [];
+
+    // ソートした順番通りに、ユーザーを入れる
+    similarityResults.map(result => {
+        const user = userList.find(u => u.id === result.userId);
+        if (user) {
+            resultList.push(user)
+        }
+    })
+
     // マッチしたユーザーを返す
-    return NextResponse.json({ 
-      targetUserId: userId,
-      results: similarityResults 
+    return NextResponse.json({
+        targetUserId: userId,
+        users: resultList,
+        results: similarityResults,
     });
 }
