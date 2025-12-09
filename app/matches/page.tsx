@@ -23,8 +23,10 @@ import { getCurrentUser } from '@/lib/action';
 import { matchesGlob } from 'path';
 import { read } from 'fs';
 import { json } from 'stream/consumers';
+import { match } from 'assert';
 
 type item = {
+    matchesId: string;
     partnerId: string;
     partnerName: string;
     partnerImage: string;
@@ -80,6 +82,7 @@ export default function Page() {
                 const userImg = "https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/" + user.id + "/" + user.id
 
                 return {
+                    matchesId: matchData?.id ?? 0,
                     partnerId: user.id,
                     partnerName: user.username,
                     partnerImage: userImg,
