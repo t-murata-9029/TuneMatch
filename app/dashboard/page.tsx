@@ -51,7 +51,7 @@ const MenuPage = () => {
     ];
 
     return (
-            <Box sx={{ flexGrow: 1, p: 4, bgcolor: theme.palette.grey[50], minHeight: '100vh' }}>
+            <Box sx={{ flexGrow: 1, p: 4, minHeight: '100vh' }}>
                 <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
                     TuneMatch
                 </Typography>
