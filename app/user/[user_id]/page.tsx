@@ -1,18 +1,18 @@
+import { MusicReviewCard } from "@/components/MusicReviewCard";
 import { getCurrentUser } from "@/lib/action";
 import { supabase } from "@/lib/supabase.cliant";
 import { Music_reviews, User } from "@/types/db";
 import { getReviewByUserId } from "@/utils/supabase/getReviews";
 import { Box, Divider, Link, Paper, Typography } from "@mui/material";
 
-interface UserPageProps {
-  params: {
-    user_id: string;
-  };
-}
-
-export default async function PostPage({ params }: UserPageProps) {
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ user_id: string }>
+}) {
   // URLからuser_idを取得
-  const user_id = params.user_id;
+  const { user_id } = await params;
+  console.log(user_id);
 
   // DBからユーザーの情報を取得
   const { data, error } = await supabase.from("users").select("*").eq("id", user_id).single()
@@ -59,10 +59,7 @@ export default async function PostPage({ params }: UserPageProps) {
             <>
               {
                 reviews.map((review) => (
-                  <Box key={review.id} component={Paper}>
-                    <Typography variant="h6">{review.track_id}</Typography>
-                    <Typography variant="body1">{review.review_text}</Typography>
-                  </Box>
+                  <MusicReviewCard review={review} />
                 ))
               }
             </>
@@ -70,6 +67,7 @@ export default async function PostPage({ params }: UserPageProps) {
         }
       </Box>
 
+        
     </Box>
   );
 }

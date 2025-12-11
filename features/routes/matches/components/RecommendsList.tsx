@@ -136,7 +136,7 @@ export default function RecommendsList() {
 
                                 {/* 中央：テキスト */}
                                 <Box flexGrow={1}>
-                                    <Typography variant="h6">
+                                    <Typography variant="h6" component="a" href={"/user/"+recommend.user.id}>
                                         {recommend.user.username}
                                     </Typography>
 

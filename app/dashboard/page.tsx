@@ -34,7 +34,7 @@ const MenuPage = () => {
             title: 'マッチ',
             description: '感性をベースにマッチングします。',
             icon: <HandshakeIcon sx={{ fontSize: 40 }} />,
-            href: '#'
+            href: '/matches/recommends'
         },
         {
             title: 'メッセージ',
@@ -52,9 +52,6 @@ const MenuPage = () => {
 
     return (
             <Box sx={{ flexGrow: 1, p: 4, minHeight: '100vh' }}>
-                <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
-                    TuneMatch
-                </Typography>
                 <Grid container spacing={4}>
                     {navCards.map((card) => (
                         <Grid key={card.title} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
