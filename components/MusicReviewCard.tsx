@@ -43,20 +43,6 @@ export const MusicReviewCard = ({ review }: MusicReviewCardProps) => {
     second: '2-digit', // 秒も表示に追加
   }).format(dateObject);
 
-  // UTC時刻をそのまま表示したい場合は、以下のformattedDateUTCを使用できます
-  /*
-  const formattedDateUTC = new Intl.DateTimeFormat('ja-JP', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZone: 'UTC', // UTCで表示
-    timeZoneName: 'short',
-  }).format(dateObject);
-  */
-
   return (
     <Card 
       sx={{ 
