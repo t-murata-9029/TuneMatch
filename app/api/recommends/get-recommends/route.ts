@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         const matchReasons = findSimilarVibeScores(targetVector, otherVector);
 
         similarityResults.push({
-            userId: otherUser.id,
+            user: otherUser,
             matchReasons: matchReasons,
             similarityScore: parseFloat(cosineSimilarity.toFixed(4)), // 小数点以下4桁に丸める
         });
@@ -95,7 +95,7 @@ export async function GET(request: Request) {
 
     // ソートした順番通りに、ユーザーを入れる
     similarityResults.map(result => {
-        const user = userList.find(u => u.id === result.userId);
+        const user = userList.find(u => u.id === result.user.id);
         if (user) {
             resultList.push(user)
         }
@@ -104,7 +104,6 @@ export async function GET(request: Request) {
     // マッチしたユーザーを返す
     return NextResponse.json({
         targetUserId: userId,
-        users: resultList,
         results: similarityResults,
     });
 }

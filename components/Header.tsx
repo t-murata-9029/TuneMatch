@@ -36,6 +36,10 @@ const pages: links[] = [
     title: "review",
     link: "/search",
   },
+  {
+    title: "match",
+    link: "/matches/recommends",
+  },
 ]
 
 // ヘッダーの右側のアイコン押したときに表示されるやつ。

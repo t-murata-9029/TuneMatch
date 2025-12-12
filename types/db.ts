@@ -52,7 +52,7 @@ export interface Music_reviews {
   track_id: string;
   review_text: string;
   rating: number;
-  created_at: Date;
+  created_at: String;
 }
 
 export interface Spotify_artist {
