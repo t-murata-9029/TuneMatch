@@ -16,14 +16,8 @@ import {
 } from '@mui/material';
 import React, { useEffect } from 'react';
 import { supabase } from '@/lib/supabase.cliant';
-import getToken from '@/utils/spotify/getToken';
 import { useRouter } from 'next/navigation';
-import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
 import { getCurrentUser } from '@/lib/action';
-import { matchesGlob } from 'path';
-import { read } from 'fs';
-import { json } from 'stream/consumers';
-import { match } from 'assert';
 
 type item = {
     matchesId: string;

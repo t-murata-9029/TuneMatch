@@ -59,7 +59,7 @@ export default async function PostPage({
             <>
               {
                 reviews.map((review) => (
-                  <MusicReviewCard review={review} />
+                  <MusicReviewCard review={review} key={review.id} />
                 ))
               }
             </>

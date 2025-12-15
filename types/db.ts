@@ -53,9 +53,12 @@ export interface Music_reviews {
   review_text: string;
   rating: number;
   created_at: String;
+  /*--- 外部テーブル ---*/
+  users?: User;
+  spotify_tracks?: Spotify_tracks
 }
 
-export interface Spotify_artist {
+export interface Spotify_artists {
   id: string;
   name: string;
   image_url: string;
@@ -64,20 +67,20 @@ export interface Spotify_artist {
 
 export interface Spotify_album {
   id: string;
-  artist?: Spotify_artist;
+  spotify_artists?: Spotify_artists;
   name: string;
   image_url: string;
   release_date: Date;
   total_tracks: number;
-  tracks?: Spotify_track
 }
 
-export interface Spotify_track {
+export interface Spotify_tracks {
   id: string;
   album_id: string;
   name: string;
   track_number: number;
   duration_ms: number;
+  spotify_album?: Spotify_album;
 }
 
 export interface User_images {
