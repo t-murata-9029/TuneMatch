@@ -68,14 +68,21 @@ export default function RecommendsList() {
 
         // マッチしたら
         if (count != null && count > 0) {
+
+            // UUIDの順番を保証する
+            const [user1_id, user2_id] =
+                myUserId < targetId
+                    ? [myUserId, targetId]
+                    : [targetId, myUserId]
+
             // DBに登録
             const { error: matchError } = await supabase.from("matches").insert({
-                user1_id: myUserId,
-                user2_id: targetId,
+                user1_id: user1_id,
+                user2_id: user2_id,
                 vibe_match_percentage: match_percentage,
             })
 
-            if( matchError ){
+            if (matchError) {
                 console.log(matchError);
                 throw new Error("DBに登録しようとしたらエラーが起きました。")
             }
@@ -136,7 +143,7 @@ export default function RecommendsList() {
 
                                 {/* 中央：テキスト */}
                                 <Box flexGrow={1}>
-                                    <Typography variant="h6" component="a" href={"/user/"+recommend.user.id}>
+                                    <Typography variant="h6" component="a" href={"/user/" + recommend.user.id}>
                                         {recommend.user.username}
                                     </Typography>
 
