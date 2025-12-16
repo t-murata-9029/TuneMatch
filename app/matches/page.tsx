@@ -51,53 +51,23 @@ export default function Page() {
                 .select('*')
                 .or(`user1_id.eq.${user_id},user2_id.eq.${user_id}`);
 
+            console.log("matches" , matches);
+
             if (matchError || !matches) {
                 console.error('マッチ相手取得時エラー：', matchError);
                 return;
             }
 
-            // マッチ相手IDの配列
-            const partnerIds = matches.map(match =>
-                match.user1_id === user_id ? match.user2_id : match.user1_id
-            );
+            const pageCount = matches.length;
 
-            if (partnerIds.length === 0) return;
+            setPageCount(Math.ceil(pageCount / 10));
 
-            const { data: users, error: userError } = await supabase
-                .from('users')
-                .select('id, username')
-                .in('id', partnerIds);
+            // 1ページ目のマッチリスト取得
 
-            if (userError || !users) {
-                console.error('ユーザー情報取得時エラー：', userError);
-                return;
-            }
-
-            // 結果整形
-            const resultsData = users.map(user => {
-                const matchData = matches.find(m =>
-                    m.user1_id === user.id || m.user2_id === user.id
-                );
-
-                const userImg = "https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/" + user.id + "/" + user.id
-
-                return {
-                    matchesId: matchData?.id ?? 0,
-                    partnerId: user.id,
-                    partnerName: user.username,
-                    partnerImage: userImg,
-                    matchRate: matchData?.vibe_match_percentage ?? 0,
-                };
-            });
-
-            setResults(resultsData);
         };
 
         fetchMatches();
     }, []);
-
-
-
 
     const handleCardClick = (item: item) => {
         sessionStorage.setItem("MessageRecipient", JSON.stringify(item));
@@ -153,7 +123,18 @@ export default function Page() {
                         </Grid>
                     ))}
                 </Grid>
+                <Box sx={{ height: 16 }} /> {/*空白追加*/}
+                <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
+//                    onChange={async (event, page) => {
+//                        const items = ;
+//                        setResults(items);                      
+//                    }}
+                />
             </Box>
         </NoSsr>
     );
+}
+
+function async() {
+    throw new Error('Function not implemented.');
 }

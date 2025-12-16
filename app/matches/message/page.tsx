@@ -232,7 +232,7 @@ export default function ChatPage() {
                     borderBottom: "1px solid #ddd",
                     position: "sticky",
                     top: 0,
-                    bgcolor: "#fff",
+                    bgcolor: "#f5f5f5",
                     zIndex: 10,
                 }}
             >
