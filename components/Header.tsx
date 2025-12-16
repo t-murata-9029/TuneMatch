@@ -40,6 +40,10 @@ const pages: links[] = [
     title: "match",
     link: "/matches/recommends",
   },
+  {
+    title: "message",
+    link: "/matches",
+  },
 ]
 
 // ヘッダーの右側のアイコン押したときに表示されるやつ。
