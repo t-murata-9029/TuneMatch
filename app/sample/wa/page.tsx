@@ -18,6 +18,7 @@ export default async function page() {
       username
     ),
     spotify_tracks (
+      id,
       name,
       spotify_album (
         spotify_artists (
@@ -31,15 +32,11 @@ export default async function page() {
   console.log(error);
 
   const list = reviews as unknown as Music_reviews[];
-  
-  list.map((a) => (
-    console.log(a.spotify_tracks)
-  ))
 
   return (
     <>
       {list.map((review) => (
-        <MusicReviewCard review={review} key={review.id} />
+        <MusicReviewCard review={review} key={review.id} noMusicPlayer={true} noTitle={true} />
       ))
       }
     </>
