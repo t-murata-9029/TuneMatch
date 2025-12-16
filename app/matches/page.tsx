@@ -31,6 +31,7 @@ export default function Page() {
     const router = useRouter();
 
     const [results, setResults] = React.useState<item[]>([]);
+    const [allItems, setAllItems] = React.useState<item[]>([]);
     const [pageCount, setPageCount] = React.useState<number>(1);
 
     useEffect(() => {
@@ -40,25 +41,106 @@ export default function Page() {
 
             const user_id = userData.id;
 
+            // ① matches 取得
             const { data: matches, error: matchError } = await supabase
-                .from('matches')
-                .select('*')
+                .from("matches")
+                .select("*")
                 .or(`user1_id.eq.${user_id},user2_id.eq.${user_id}`);
 
-            console.log("matches" , matches);
-
             if (matchError || !matches) {
-                console.error('マッチ相手取得時エラー：', matchError);
+                console.error("マッチ相手取得時エラー：", matchError);
                 return;
             }
 
-            const pageCount = matches.length;
+            // ② 最新メッセージ時間付与
+            const itemsWithLatestMessage = await Promise.all(
+                matches.map(async (match) => {
+                    const { data: latestMessage, error } = await supabase
+                        .from("chat_messages")
+                        .select("sent_at")
+                        .eq("match_id", match.id)
+                        .order("sent_at", { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
 
-            setPageCount(Math.ceil(pageCount / 10));
+                    if (error) {
+                        console.error("メッセージ取得エラー:", error);
+                    }
 
-            // 1ページ目のマッチリスト取得
+                    return {
+                        ...match,
+                        latestMessageAt: latestMessage?.sent_at ?? null,
+                    };
+                })
+            );
 
+            // ③ partnerUserId を決める
+            const itemsWithPartnerId = itemsWithLatestMessage.map((match) => {
+                const partnerUserId =
+                    match.user1_id === user_id
+                        ? match.user2_id
+                        : match.user1_id;
+
+                return {
+                    ...match,
+                    partnerUserId,
+                };
+            });
+
+            // ④ partnerUserId をまとめて取得
+            const partnerIds = itemsWithPartnerId.map(
+                (item) => item.partnerUserId
+            );
+
+            const { data: partners, error: userError } = await supabase
+                .from("users")
+                .select("id, username")
+                .in("id", partnerIds);
+
+            if (userError || !partners) {
+                console.error("ユーザー取得エラー:", userError);
+                return;
+            }
+
+            // ⑤ Map 化
+            const partnerMap = new Map(
+                partners.map((u) => [u.id, u])
+            );
+
+            // ⑥ item 型に整形（最終形）
+            const finalItems = itemsWithPartnerId.map((item) => {
+                const partner = partnerMap.get(item.partnerUserId);
+
+                const userImg = "https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/" + item.partnerUserId + "/" + item.partnerUserId;
+
+                return {
+                    matchesId: item.id,
+                    partnerId: item.partnerUserId,
+                    partnerName: partner?.username ?? "不明",
+                    partnerImage: userImg ?? "/no-image.png",
+                    matchRate: item.vibe_match_percentage,
+                    latestMessageAt: item.latestMessageAt,
+                };
+            });
+
+            // ⑦ 最新メッセージ順でソート
+            finalItems.sort((a, b) => {
+                if (!a.latestMessageAt && !b.latestMessageAt) return 0;
+                if (!a.latestMessageAt) return 1;
+                if (!b.latestMessageAt) return -1;
+
+                return (
+                    new Date(b.latestMessageAt).getTime() -
+                    new Date(a.latestMessageAt).getTime()
+                );
+            });
+
+            // ページング用
+            setPageCount(Math.ceil(finalItems.length / 10));
+            setAllItems(finalItems);
+            setResults(finalItems.slice(0, 10));
         };
+
 
         fetchMatches();
     }, []);
@@ -119,10 +201,9 @@ export default function Page() {
                 </Grid>
                 <Box sx={{ height: 16 }} /> {/*空白追加*/}
                 <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
-//                    onChange={async (event, page) => {
-//                        const items = ;
-//                        setResults(items);                      
-//                    }}
+                    onChange={async (event, page) => {
+                        setResults(allItems.slice((page * 10) - 10, (page * 10) - 1));
+                    }}
                 />
             </Box>
         </NoSsr>
