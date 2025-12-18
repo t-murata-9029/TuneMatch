@@ -27,6 +27,7 @@ type item = {
     matchRate: number;
 };
 
+
 export default function Page() {
     const router = useRouter();
 
@@ -202,7 +203,7 @@ export default function Page() {
                 <Box sx={{ height: 16 }} /> {/*空白追加*/}
                 <Pagination count={pageCount} variant="outlined" shape="rounded" color='primary'
                     onChange={async (event, page) => {
-                        setResults(allItems.slice((page * 10) - 10, (page * 10) - 1));
+                        setResults(allItems.slice((page - 1) * 10, (page * 10) - 1));
                     }}
                 />
             </Box>
