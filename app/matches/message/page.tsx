@@ -23,6 +23,7 @@ type item = {
     partnerImage: string;
     matchRate: number;
     latestMessageAt?: string | null;
+    latestMessageText: string;
     unreadCount: number;
 }
 
@@ -50,7 +51,13 @@ export default function ChatPage() {
             [...prev]
                 .map((item) =>
                     item.matchesId === newMessage.match_id
-                        ? { ...item, latestMessageAt: newMessage.sent_at }
+                        ? {
+                            ...item,
+                            latestMessageAt: newMessage.sent_at,
+                            latestMessageText: newMessage.message_text 
+                            ? newMessage.message_text.slice(0, 10) + (newMessage.message_text.length > 20 ? "..." : "")
+                            : "",
+                        }
                         : item
                 )
                 .sort((a, b) => {
@@ -242,6 +249,14 @@ export default function ChatPage() {
 
                     const userImg = "https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/" + item.partnerUserId + "/" + item.partnerUserId;
 
+                    const { data: latestMessage } = await supabase
+                        .from("chat_messages")
+                        .select("message_text")
+                        .eq("match_id", item.id)
+                        .order("sent_at", { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
                     const { count } = await supabase
                         .from("chat_messages")
                         .select("id", { count: "exact", head: true })
@@ -256,7 +271,9 @@ export default function ChatPage() {
                         partnerImage: userImg ?? "/no-image.png",
                         matchRate: item.vibe_match_percentage,
                         latestMessageAt: item.latestMessageAt,
-                        unreadCount: count ?? 0,
+                        latestMessageText: latestMessage?.message_text
+                            ? latestMessage.message_text.slice(0, 20) + (latestMessage.message_text.length > 20 ? "..." : "")
+                            : "", unreadCount: count ?? 0,
                     };
                 })
             );
@@ -402,7 +419,6 @@ export default function ChatPage() {
         }).format(d);
     };
 
-
     let prevDate = "";
 
     messages.map((msg, index) => {
@@ -431,7 +447,7 @@ export default function ChatPage() {
         <Box
             sx={{
                 display: "flex",
-                height: "100vh",
+                height: "87vh",
                 overflow: "hidden", // 画面全体のスクロールを防ぐ
                 p: 0, // paddingを削除
             }}
@@ -444,7 +460,7 @@ export default function ChatPage() {
                     display: "flex",
                     flexDirection: "column",
                     bgcolor: "#f0f4f8",
-                    height: "100vh", // maxHeightではなくheightに
+                    height: "87vh", // maxHeightではなくheightに
                     overflowY: "auto",
                 }}
             >
@@ -503,7 +519,7 @@ export default function ChatPage() {
                                 )}
                             </div>
                             <div style={{ fontSize: "0.8rem", color: "#777" }}>
-                                最新メッセージ表示とか
+                                {item.latestMessageText}
                             </div>
                         </Box>
                     );
@@ -516,7 +532,7 @@ export default function ChatPage() {
                     width: "70%",
                     display: "flex",
                     flexDirection: "column",
-                    height: "100vh", // 高さを100vhに固定
+                    height: "87vh", // 高さを100vhに固定
                     overflow: "hidden", // 右カラム全体のスクロールを防ぐ
                 }}
             >
