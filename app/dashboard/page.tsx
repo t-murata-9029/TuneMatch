@@ -18,9 +18,21 @@ import HomeIcon from '@mui/icons-material/Home';
 import AudiotrackIcon from '@mui/icons-material/Audiotrack';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import MessageIcon from '@mui/icons-material/Message';
+import { useEffect, useState } from 'react';
+import { getCurrentUser } from '@/lib/action';
+import { User } from '@supabase/supabase-js';
 
 const MenuPage = () => {
-    const theme = useTheme();
+
+    const [userData, setUserData] = useState<User | null>(null);
+
+    useEffect( () => {
+        const getUser = async () => {
+            const user = await getCurrentUser();
+            setUserData(user);
+        }
+        getUser();
+    }, []);
 
     // --- ナビゲーションカードデータ ---
     const navCards = [
@@ -46,7 +58,7 @@ const MenuPage = () => {
             title: 'マイページ',
             description: 'プロフィールを確認、変更できます。',
             icon: <HomeIcon sx={{ fontSize: 40 }} />,
-            href: '/user/mypage'
+            href: '/user/' + (userData ? userData.id : ''), 
         },
     ];
 

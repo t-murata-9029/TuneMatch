@@ -1,4 +1,4 @@
-export type Gender = 'male' | 'female';
+export type Gender = 'MALE' | 'FEMALE';
 
 export interface User {
   id: string; // uuid

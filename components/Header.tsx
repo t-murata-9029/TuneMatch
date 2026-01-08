@@ -26,42 +26,6 @@ interface links {
   link: string,
 }
 
-// ヘッダーのメニュー
-const pages: links[] = [
-  {
-    title: "dashboard",
-    link: "/dashboard",
-  },
-  {
-    title: "review",
-    link: "/search",
-  },
-  {
-    title: "match",
-    link: "/matches/recommends",
-  },
-  {
-    title: "message",
-    link: "/matches",
-  },
-]
-
-// ヘッダーの右側のアイコン押したときに表示されるやつ。
-const settings: links[] = [
-  {
-    title: "Mypage",
-    link: "/user/mypage"
-  },
-  {
-    title: "Setting",
-    link: "/setting"
-  },
-  {
-    title: "Logout",
-    link: "/auth/logout"
-  },
-];
-
 // 非表示にしたいパスのリスト
 const HIDDEN_PATHS = ['/auth/login', '/auth/signup', '/'];
 
@@ -110,6 +74,42 @@ function Header() {
     getUserId()
   }, []);
 
+
+  // ヘッダーの右側のアイコン押したときに表示されるやつ。
+  const settings: links[] = [
+    {
+      title: "Mypage",
+      link: "/user/" + userId,
+    },
+    {
+      title: "Setting",
+      link: "/setting"
+    },
+    {
+      title: "Logout",
+      link: "/auth/logout"
+    },
+  ];
+
+  // ヘッダーのメニュー
+  const pages: links[] = [
+    {
+      title: "dashboard",
+      link: "/dashboard",
+    },
+    {
+      title: "review",
+      link: "/search",
+    },
+    {
+      title: "match",
+      link: "/matches/recommends",
+    },
+    {
+      title: "message",
+      link: "/matches",
+    },
+  ]
 
   return (
     <AppBar position="static">

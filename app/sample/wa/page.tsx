@@ -1,7 +1,10 @@
 import { MusicReviewCard } from "@/components/MusicReviewCard";
+import { MusicReviewList } from "@/components/MusicReviewList";
 import { createAdminClient } from "@/lib/supabase.admin"
 import { Music_reviews, Spotify_tracks } from "@/types/db";
+import { Box } from "@mui/material";
 import { createClient } from "@supabase/supabase-js"
+import { RadarChart } from '@mui/x-charts/RadarChart';
 
 export default async function page() {
   const supabase = createAdminClient();
@@ -35,10 +38,17 @@ export default async function page() {
 
   return (
     <>
-      {list.map((review) => (
-        <MusicReviewCard review={review} key={review.id} noMusicPlayer={true} noTitle={true} />
-      ))
-      }
+
+      <RadarChart
+        height={300}
+        series={[{ label: 'Lisa', data: [120, 98, 86, 99, 85, 65,100] }]}
+        radar={{
+          max: 120,
+          metrics: ['Math', 'Chinese', 'English', 'Geography', 'Physics', 'History', 'Art'],
+        }}
+      />
+
+
     </>
   )
 }
