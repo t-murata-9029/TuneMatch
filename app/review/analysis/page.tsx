@@ -145,6 +145,26 @@ export default function ReviewAnalysisPage() {
     例： ["疾走感"] ← OK / "疾走感" ← NG
     空の場合も空配列にしてください。[] ← OK / null ← NG
     出力は JSON のみで。余計な装飾はなし。
+
+    出力形式:
+    json
+      {
+  "rhythm": 数値,
+  "melody": 数値,
+  "lyric": 数値,
+  "production": 数値,
+  "intensity": 数値,
+  "sentiment_positivity": 数値,
+  "sentiment_negativity": 数値,
+  "detail_level": 数値,
+  "extracted_genres": ['文字列'],
+  "extracted_moods": [
+    '文字列'
+  ],
+  "extracted_keywords": [
+    '文字列'
+  ]
+}
     
     `
 
@@ -160,6 +180,8 @@ export default function ReviewAnalysisPage() {
 
       console.log("res", res);
 
+      console.log(gemini_data);
+
       const raw = gemini_data.text;
 
       // 「```json」と「```」を除去
@@ -169,17 +191,17 @@ export default function ReviewAnalysisPage() {
       const parsed = JSON.parse(clean);
 
       // こうすればOK
-      const focus_rhythm = parsed["1"];
-      const focus_melody = parsed["2"];
-      const focus_lyric = parsed["3"];
-      const focus_production = parsed["4"];
-      const emotional_intensity = parsed["5"];
-      const sentiment_positivity = parsed["6"];
-      const sentiment_negativity = parsed["7"];
-      const detail_level = parsed["8"];
-      const extracted_genres = parsed["9"];
-      const extracted_moods = parsed["10"];
-      const extracted_keywords = parsed["11"];
+      const focus_rhythm = parsed.rhythm;                    // 0.90
+      const focus_melody = parsed.melody;                    // 0.85
+      const focus_lyric = parsed.lyric;                      // 0.20
+      const focus_production = parsed.production;            // 0.50
+      const emotional_intensity = parsed.intensity;          // 0.80
+      const sentiment_positivity = parsed.sentiment_positivity;  // 0.95
+      const sentiment_negativity = parsed.sentiment_negativity;  // 0.05
+      const detail_level = parsed.detail_level;              // 0.10
+      const extracted_genres = parsed.extracted_genres;      // []
+      const extracted_moods = parsed.extracted_moods;        // ["ライブで盛り上がる"]
+      const extracted_keywords = parsed.extracted_keywords;  // ["いい曲"]
 
       let reviewId;
 
