@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/action";
 import { supabase } from "@/lib/supabase.cliant";
 import { Music_reviews, User } from "@/types/db";
 import { getReviewByUserId } from "@/utils/supabase/getReviews";
-import { Box, Divider, Link, Paper, Typography, Stack, colors, Grid } from "@mui/material";
+import { Box, Divider, Link, Paper, Typography, Stack, colors, Grid, Avatar } from "@mui/material";
 
 // アイコンのインポート (MUI Iconsから適切なものを選択)
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -111,7 +111,7 @@ export default async function PostPage({
 
         {/* ユーザー名と性別 */}
         <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-          <AccountCircleIcon sx={{ fontSize: 40, color: color }} />
+          <Avatar sx={{ fontSize: 40, color: color }} src={"https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/" + user_id + "/" + user_id} />
           <Typography variant="h4" component="h1" fontWeight="bold">
             <Box component="span" color={color}>
               {user.username}
@@ -143,7 +143,7 @@ export default async function PostPage({
 
         {/* AI Vibe Score (Gridで整理) */}
         <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-          AIミュージック嗜好スコア
+          AIミュージックスコア
         </Typography>
 
         <RadarChart
