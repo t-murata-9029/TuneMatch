@@ -126,6 +126,23 @@ export default function RecommendsList() {
         }
     }
 
+    if (!recommendsList) {
+        return (
+            <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center" // 縦方向の中央揃え
+                alignItems="center"     // 横方向の中央揃え
+                minHeight="80vh"       // 画面いっぱいの高さにする（または '300px' など任意の高さ）
+                gap={2}
+            >
+                <Typography variant="h6">
+                    おすすめの人はいないみたいです...
+                </Typography>
+            </Box>
+        );
+    }
+
     return (
         <>
             <Box display="flex" flexDirection="column" gap={2}>
