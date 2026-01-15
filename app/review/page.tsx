@@ -2,19 +2,12 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  createTheme,
-  CssBaseline,
-  useMediaQuery,
-  Box,
-  Button,
-  TextField,
-  Rating,
-  NoSsr,
-  Typography,
-} from '@mui/material';
+import { Box, Button, TextField, Rating, NoSsr, Typography } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { postReviewState } from '../../types/forms/review';
+import { Music_reviews } from '@/types/db';
+import { MusicReviewList } from '@/components/MusicReviewList';
+import { getReviewByTrackId } from '@/utils/supabase/getReviews';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',
@@ -24,21 +17,34 @@ const labels: { [index: number]: string } = {
   5: '毎日きける',
 };
 
-function getLabelText(value: number) {
-  return `${value} Star${value !== 1 ? 's' : ''}, ${labels[value]}`;
-}
-
-export default function ReviewPage() {
-
-  const dataJson = sessionStorage.getItem('selectedItem');
+export default function ReviewPage() {  // ← async を削除
+  const dataJson = typeof window !== 'undefined' ? sessionStorage.getItem('selectedItem') : null;
   const data = dataJson ? JSON.parse(dataJson) : null;
 
   const router = useRouter();
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-
   const [text, setText] = React.useState('');
   const [rating, setRating] = React.useState<number | null>(2);
   const [hover, setHover] = React.useState(-1);
+  const [reviews, setReviews] = React.useState<Music_reviews[]>([]);  // ← state追加
+  const [loading, setLoading] = React.useState(true);  // ← loading追加
+
+  // useEffectでデータ取得
+  React.useEffect(() => {
+    if (!data?.trackId) return;
+    
+    async function fetchReviews() {
+      try {
+        const reviewsData = await getReviewByTrackId(data.trackId);
+        setReviews(reviewsData);
+      } catch (error) {
+        console.error('レビュー取得エラー:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchReviews();
+  }, [data?.trackId]);
 
   const handleSubmit = () => {
     const reviewData: postReviewState = {
@@ -51,87 +57,93 @@ export default function ReviewPage() {
 
   return (
     <NoSsr>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            minHeight: '100vh',
-            p: 2,
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '80%', maxWidth: 500 }}>
-            <Typography variant="h5" fontWeight="bold">
-              {'レビュー投稿画面'}
-            </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          p: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '80%', maxWidth: 500 }}>
+          <Typography variant="h5" fontWeight="bold">
+            {'レビュー投稿画面'}
+          </Typography>
 
-            {data && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Box
-                  sx={(theme) => ({
-                    width: 100,
-                    height: 100,
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: `2px solid ${theme.palette.mode === 'dark' ? '#ffffff' : '#000000'
-                      }`,
-                    flexShrink: 0,
-                  })}
-                >
-                  <img
-                    src={data.albumImage || '/noimage.png'}
-                    alt="album image"
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {data.trackName}
-                  </Typography>
-                  <Box sx={{ height: 8 }} /> {/*空白追加*/}
-                  <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
-                    {data.artistName}
-                  </Typography>
-                </Box>
+          {data && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Box
+                sx={(theme) => ({
+                  width: 100,
+                  height: 100,
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  border: `2px solid ${theme.palette.mode === 'dark' ? '#ffffff' : '#000000'}`,
+                  flexShrink: 0,
+                })}
+              >
+                <img
+                  src={data.albumImage || '/noimage.png'}
+                  alt="album image"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               </Box>
-            )}
-
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Rating
-                name="hover-feedback"
-                value={rating}
-                precision={1}
-                getLabelText={getLabelText}
-                onChange={(event, value) => setRating(value)}
-                onChangeActive={(event, hoverValue) => setHover(hoverValue)}
-                emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />}
-              />
-              {rating !== null && <Box sx={{ ml: 2 }}>{labels[hover !== -1 ? hover : rating]}</Box>}
+              <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {data.trackName}
+                </Typography>
+                <Box sx={{ height: 8 }} />
+                <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
+                  {data.artistName}
+                </Typography>
+              </Box>
             </Box>
+          )}
 
-            <TextField
-              label="レビュー"
-              multiline
-              rows={4}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              sx={{ width: '100%' }}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Rating
+              name="hover-feedback"
+              value={rating}
+              precision={1}
+              onChange={(event, value) => setRating(value)}
+              onChangeActive={(event, hoverValue) => setHover(hoverValue)}
+              emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />}
             />
-
-            <Button
-              variant="outlined"
-              onClick={handleSubmit}
-              sx={{ width: 'auto', alignSelf: 'flex-end', px: 3, py: 1.5 }}
-            >
-              レビュー投稿
-            </Button>
+            {rating !== null && <Box sx={{ ml: 2 }}>{labels[hover !== -1 ? hover : rating]}</Box>}
           </Box>
+
+          <TextField
+            label="レビュー"
+            multiline
+            rows={4}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            sx={{ width: '100%' }}
+          />
+
+          <Button
+            variant="outlined"
+            onClick={handleSubmit}
+            sx={{ width: 'auto', alignSelf: 'flex-end', px: 3, py: 1.5 }}
+          >
+            レビュー投稿
+          </Button>
         </Box>
-    </NoSsr >
+      </Box>
+
+      <Box id="review_list">
+        {loading ? (
+          <Typography sx={{ textAlign: 'center', p: 3 }}>読み込み中...</Typography>
+        ) : reviews.length !== 0 ? (
+          <MusicReviewList reviews={reviews} />
+        ) : (
+          <Typography sx={{ textAlign: 'center', p: 3 }}>
+            レビューを投稿していないようです。
+          </Typography>
+        )}
+      </Box>
+    </NoSsr>
   );
 }
