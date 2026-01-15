@@ -8,7 +8,6 @@ import { User } from "@supabase/supabase-js";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { Key } from "@mui/icons-material";
 
 type MatchData = {
     matchesId: number;
@@ -36,7 +35,7 @@ export default function ChatPage() {
     const [input, setInput] = useState("");
 
     const [loading, setLoading] = useState(true);
-    const [loadingMessages, setLoadingMessages] = useState(true);
+    const [loadingMessages, setLoadingMessages] = useState(false);
 
     const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
@@ -147,12 +146,13 @@ export default function ChatPage() {
     // 初期ロード
     useEffect(() => {
         const init = async () => {
-            const raw = sessionStorage.getItem("MessageRecipient");
-            if (raw) {
-                const data = JSON.parse(raw);
-                setMatchData(data);
-                setSelectedMatchId(String(data.matchesId));
-            }
+            // sessionStorageからの自動選択を削除
+            // const raw = sessionStorage.getItem("MessageRecipient");
+            // if (raw) {
+            //     const data = JSON.parse(raw);
+            //     setMatchData(data);
+            //     setSelectedMatchId(String(data.matchesId));
+            // }
 
             const user = await getCurrentUser();
             setUserData(user);
@@ -242,7 +242,7 @@ export default function ChatPage() {
                 partners.map((u) => [u.id, u])
             );
 
-            // ⑥ item 型に整形（最終形）
+            // ⑥ item 型に整形(最終形)
             const finalItems = await Promise.all(
                 itemsWithPartnerId.map(async (item) => {
                     const partner = partnerMap.get(item.partnerUserId);
@@ -260,7 +260,7 @@ export default function ChatPage() {
                     const { count } = await supabase
                         .from("chat_messages")
                         .select("id", { count: "exact", head: true })
-                        .eq("match_id", item.matchesId)
+                        .eq("match_id", item.id)
                         .eq("is_read", false)
                         .neq("sender_id", user_id);
 
@@ -289,11 +289,9 @@ export default function ChatPage() {
                 );
             });
 
-            // ページング用
             setAllItems(finalItems);
 
         };
-
 
         fetchMatches();
     }, []);
@@ -313,7 +311,9 @@ export default function ChatPage() {
                 (payload) => {
                     updateLatestMessage(payload.new);
 
-                    updateUnreadCount(matchData?.matchesId ?? 0);
+                    if (matchData?.matchesId) {
+                        updateUnreadCount(matchData.matchesId);
+                    }
                 }
             )
             .subscribe();
@@ -321,7 +321,7 @@ export default function ChatPage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [userData, updateLatestMessage, updateUnreadCount]);
+    }, [userData, updateLatestMessage, updateUnreadCount, matchData]);
 
     // 新着メッセージ受信
     useEffect(() => {
@@ -338,7 +338,7 @@ export default function ChatPage() {
                     filter: `match_id=eq.${matchData.matchesId}`,
                 },
                 () => {
-                    loadMessages(); // 右側更新
+                    loadMessages();
                 }
             )
             .subscribe();
@@ -363,7 +363,6 @@ export default function ChatPage() {
                     filter: `match_id=eq.${matchData.matchesId}`,
                 },
                 async () => {
-                    // UPDATE されたら再取得（is_read の反映など）
                     loadMessages();
                 }
             )
@@ -377,15 +376,14 @@ export default function ChatPage() {
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        // メッセージの最後までスクロール
         el.scrollTop = el.scrollHeight;
     }, [messages]);
 
     if (loading) return null;
-    if (!userData || !matchData) return null;
+    if (!userData) return null;
 
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() || !matchData) return;
 
         await supabase.from("chat_messages").insert([
             {
@@ -399,16 +397,14 @@ export default function ChatPage() {
 
         updateLatestMessage({
             match_id: matchData.matchesId,
+            message_text: input,
             sent_at: new Date().toISOString(),
         });
 
         setInput("");
-
-        // 送信後も SQL 側から取得
         loadMessages();
     };
 
-    // 日本時間表記に変更
     const formatTime = (utcString: string) => {
         const d = new Date(utcString);
         return new Intl.DateTimeFormat("ja-JP", {
@@ -419,40 +415,16 @@ export default function ChatPage() {
         }).format(d);
     };
 
-    let prevDate = "";
-
-    messages.map((msg, index) => {
-        const dateStr = msg.sent_at.slice(0, 10); // 2025-12-11 みたいな日付だけ
-
-        const showDateBar = dateStr !== prevDate;
-        prevDate = dateStr;
-
-        return (
-            <div key={index}>
-                {showDateBar && (
-                    <div className="text-center text-gray-500 my-2">
-                        {dateStr}
-                    </div>
-                )}
-
-                <div>
-                    {/* メッセージ本体 */}
-                    {msg.text}
-                </div>
-            </div>
-        );
-    });
-
     return (
         <Box
             sx={{
                 display: "flex",
                 height: "87vh",
-                overflow: "hidden", // 画面全体のスクロールを防ぐ
-                p: 0, // paddingを削除
+                overflow: "hidden",
+                p: 0,
             }}
         >
-            {/* 左カラム（3割） */}
+            {/* 左カラム(3割) */}
             <Box
                 sx={{
                     width: "30%",
@@ -460,7 +432,7 @@ export default function ChatPage() {
                     display: "flex",
                     flexDirection: "column",
                     bgcolor: "#f0f4f8",
-                    height: "87vh", // maxHeightではなくheightに
+                    height: "87vh",
                     overflowY: "auto",
                 }}
             >
@@ -468,7 +440,7 @@ export default function ChatPage() {
                     マッチング相手
                 </Box>
 
-                {allItems.map((item, index) => {
+                {allItems.map((item) => {
                     const isSelected = String(item.matchesId) === selectedMatchId;
 
                     return (
@@ -480,7 +452,6 @@ export default function ChatPage() {
                                     partnerName: item.partnerName,
                                 });
                                 setSelectedMatchId(String(item.matchesId));
-                                router.push(`/matches/message`);
                             }}
                             key={item.matchesId}
                             sx={{
@@ -526,160 +497,178 @@ export default function ChatPage() {
                 })}
             </Box>
 
-            {/* 右カラム（7割） */}
+            {/* 右カラム(7割) */}
             <Box
                 sx={{
                     width: "70%",
                     display: "flex",
                     flexDirection: "column",
-                    height: "87vh", // 高さを100vhに固定
-                    overflow: "hidden", // 右カラム全体のスクロールを防ぐ
+                    height: "87vh",
+                    overflow: "hidden",
                 }}
             >
-                {/* ヘッダー */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.5,
-                        p: 1.5,
-                        borderBottom: "1px solid #ddd",
-                        bgcolor: "#f5f5f5",
-                        flexShrink: 0, // ヘッダーが縮まないようにする
-                    }}
-                >
-                    <ArrowBackIosNewIcon
-                        onClick={() => router.back()}
-                        style={{ cursor: "pointer" }}
-                    />
-                    <div style={{ fontSize: "1.1rem", fontWeight: "bold" }}>
-                        {matchData.partnerName}
-                    </div>
-                </Box>
+                {matchData ? (
+                    <>
+                        {/* ヘッダー */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                                p: 1.5,
+                                borderBottom: "1px solid #ddd",
+                                bgcolor: "#f5f5f5",
+                                flexShrink: 0,
+                            }}
+                        >
+                            <ArrowBackIosNewIcon
+                                onClick={() => router.back()}
+                                style={{ cursor: "pointer" }}
+                            />
+                            <div style={{ fontSize: "1.1rem", fontWeight: "bold" }}>
+                                {matchData.partnerName}
+                            </div>
+                        </Box>
 
-                {/* メッセージ表示エリア */}
-                <Box
-                    ref={containerRef}
-                    sx={{
-                        flex: 1, // 残りのスペースを全て使う
-                        overflowY: "auto",
-                        display: "flex",
-                        flexDirection: "column",
-                        p: 2,
-                        border: "1px solid #ddd",
-                        borderRadius: "16px",
-                        backgroundColor: "#fafafa",
-                        boxShadow: "inset 0 0 8px rgba(0,0,0,0.05)",
-                        m: 2,
-                    }}
-                >
-                    {messages.map((msg, index) => {
-                        const dateStr = msg.sent_at.slice(0, 10);
-                        const prevDate = index > 0 ? messages[index - 1].sent_at.slice(0, 10) : null;
+                        {/* メッセージ表示エリア */}
+                        <Box
+                            ref={containerRef}
+                            sx={{
+                                flex: 1,
+                                overflowY: "auto",
+                                display: "flex",
+                                flexDirection: "column",
+                                p: 2,
+                                border: "1px solid #ddd",
+                                borderRadius: "16px",
+                                backgroundColor: "#fafafa",
+                                boxShadow: "inset 0 0 8px rgba(0,0,0,0.05)",
+                                m: 2,
+                            }}
+                        >
+                            {messages.map((msg, index) => {
+                                const dateStr = msg.sent_at.slice(0, 10);
+                                const prevDate = index > 0 ? messages[index - 1].sent_at.slice(0, 10) : null;
 
-                        return (
-                            <React.Fragment key={index}>
-                                {dateStr !== prevDate && (
-                                    <div
-                                        style={{
-                                            textAlign: "center",
-                                            color: "#777",
-                                            margin: "10px 0",
-                                            fontSize: "0.8rem",
-                                        }}
-                                    >
-                                        {dateStr}
-                                    </div>
-                                )}
-
-                                <Box
-                                    sx={{
-                                        display: "flex",
-                                        flexDirection: msg.sender === "you" ? "row-reverse" : "row",
-                                        alignItems: "flex-end",
-                                        maxWidth: "70%",
-                                        gap: 1,
-                                        alignSelf: msg.sender === "you" ? "flex-end" : "flex-start",
-                                        mb: 1,
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            p: 1.2,
-                                            borderRadius: 2,
-                                            bgcolor: msg.sender === "you" ? "#1976d2" : "#fff",
-                                            color: msg.sender === "you" ? "#fff" : "#000",
-                                            boxShadow: 1,
-                                            maxWidth: "100%",
-                                        }}
-                                    >
-                                        {msg.text}
-                                    </Box>
-
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            gap: 0.2,
-                                            textAlign: msg.sender === "you" ? "right" : "left",
-                                            alignItems: msg.sender === "you" ? "flex-end" : "flex-start",
-                                        }}
-                                    >
-                                        {msg.sender === "you" && (
+                                return (
+                                    <React.Fragment key={index}>
+                                        {dateStr !== prevDate && (
                                             <div
                                                 style={{
-                                                    fontSize: "0.7rem",
+                                                    textAlign: "center",
                                                     color: "#777",
-                                                    whiteSpace: "nowrap",
+                                                    margin: "10px 0",
+                                                    fontSize: "0.8rem",
                                                 }}
                                             >
-                                                {msg.is_read}
+                                                {dateStr}
                                             </div>
                                         )}
 
-                                        <div
-                                            style={{
-                                                fontSize: "0.7rem",
-                                                color: "#777",
-                                                whiteSpace: "nowrap",
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                flexDirection: msg.sender === "you" ? "row-reverse" : "row",
+                                                alignItems: "flex-end",
+                                                maxWidth: "70%",
+                                                gap: 1,
+                                                alignSelf: msg.sender === "you" ? "flex-end" : "flex-start",
+                                                mb: 1,
                                             }}
                                         >
-                                            {formatTime(msg.sent_at)}
-                                        </div>
-                                    </Box>
-                                </Box>
-                            </React.Fragment>
-                        );
-                    })}
-                </Box>
+                                            <Box
+                                                sx={{
+                                                    p: 1.2,
+                                                    borderRadius: 2,
+                                                    bgcolor: msg.sender === "you" ? "#1976d2" : "#fff",
+                                                    color: msg.sender === "you" ? "#fff" : "#000",
+                                                    boxShadow: 1,
+                                                    maxWidth: "100%",
+                                                }}
+                                            >
+                                                {msg.text}
+                                            </Box>
 
-                {/* 入力欄 */}
-                <Box
-                    sx={{
-                        display: "flex",
-                        gap: 1,
-                        p: 2,
-                        borderTop: "1px solid #ddd",
-                        bgcolor: "#fff",
-                        flexShrink: 0, // 入力欄が縮まないようにする
-                    }}
-                >
-                    <TextField
-                        fullWidth
-                        placeholder="メッセージを入力..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: 0.2,
+                                                    textAlign: msg.sender === "you" ? "right" : "left",
+                                                    alignItems: msg.sender === "you" ? "flex-end" : "flex-start",
+                                                }}
+                                            >
+                                                {msg.sender === "you" && (
+                                                    <div
+                                                        style={{
+                                                            fontSize: "0.7rem",
+                                                            color: "#777",
+                                                            whiteSpace: "nowrap",
+                                                        }}
+                                                    >
+                                                        {msg.is_read}
+                                                    </div>
+                                                )}
+
+                                                <div
+                                                    style={{
+                                                        fontSize: "0.7rem",
+                                                        color: "#777",
+                                                        whiteSpace: "nowrap",
+                                                    }}
+                                                >
+                                                    {formatTime(msg.sent_at)}
+                                                </div>
+                                            </Box>
+                                        </Box>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </Box>
+
+                        {/* 入力欄 */}
+                        <Box
+                            sx={{
+                                display: "flex",
+                                gap: 1,
+                                p: 2,
+                                borderTop: "1px solid #ddd",
+                                bgcolor: "#fff",
+                                flexShrink: 0,
+                            }}
+                        >
+                            <TextField
+                                fullWidth
+                                placeholder="メッセージを入力..."
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                            />
+                            <Button variant="contained" onClick={handleSend}>
+                                送信
+                            </Button>
+                        </Box>
+                    </>
+                ) : (
+                    // matchDataがない時の表示
+                    <Box
+                        sx={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#999",
+                            fontSize: "1.2rem",
                         }}
-                    />
-                    <Button variant="contained" onClick={handleSend}>
-                        送信
-                    </Button>
-                </Box>
+                    >
+                        左のリストからチャット相手を選択してください
+                    </Box>
+                )}
             </Box>
         </Box>
     );

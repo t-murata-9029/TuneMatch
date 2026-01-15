@@ -52,7 +52,7 @@ const MenuPage = () => {
             title: 'メッセージ',
             description: 'マッチした人とメッセージをします。',
             icon: <MessageIcon sx={{ fontSize: 40 }} />,
-            href: '/matches'
+            href: '/matches/message'
         },
         {
             title: 'マイページ',

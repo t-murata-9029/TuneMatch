@@ -31,7 +31,7 @@ export default function ReviewPage() {  // ← async を削除
   // useEffectでデータ取得
   React.useEffect(() => {
     if (!data?.trackId) return;
-    
+
     async function fetchReviews() {
       try {
         const reviewsData = await getReviewByTrackId(data.trackId);
@@ -42,7 +42,7 @@ export default function ReviewPage() {  // ← async を削除
         setLoading(false);
       }
     }
-    
+
     fetchReviews();
   }, [data?.trackId]);
 
@@ -131,19 +131,23 @@ export default function ReviewPage() {  // ← async を削除
             レビュー投稿
           </Button>
         </Box>
-      </Box>
 
-      <Box id="review_list">
-        {loading ? (
-          <Typography sx={{ textAlign: 'center', p: 3 }}>読み込み中...</Typography>
-        ) : reviews.length !== 0 ? (
-          <MusicReviewList reviews={reviews} />
-        ) : (
-          <Typography sx={{ textAlign: 'center', p: 3 }}>
-            レビューを投稿していないようです。
-          </Typography>
-        )}
-      </Box>
+        <Typography variant="h5" component="h2" sx={{ mb: 3, mt: 4, textAlign: 'center' }}>
+          「{data.trackName}」に対してのレビュー
+        </Typography>
+
+        <Box id="review_list">
+          {loading ? (
+            <Typography sx={{ textAlign: 'center', p: 3 }}>読み込み中...</Typography>
+          ) : reviews.length !== 0 ? (
+            <MusicReviewList reviews={reviews} noTitle={true} noMusicPlayer={true} />
+          ) : (
+            <Typography sx={{ textAlign: 'center', p: 3 }}>
+              レビューを投稿していないようです。
+            </Typography>
+          )}
+        </Box>
+      </Box >
     </NoSsr>
   );
 }
