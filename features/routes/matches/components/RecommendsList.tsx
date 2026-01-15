@@ -126,7 +126,8 @@ export default function RecommendsList() {
         }
     }
 
-    if (!recommendsList) {
+
+    if (recommendsList?.length == 0) {
         return (
             <Box
                 display="flex"
