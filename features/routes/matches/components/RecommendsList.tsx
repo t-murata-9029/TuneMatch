@@ -126,6 +126,24 @@ export default function RecommendsList() {
         }
     }
 
+
+    if (recommendsList?.length == 0) {
+        return (
+            <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center" // 縦方向の中央揃え
+                alignItems="center"     // 横方向の中央揃え
+                minHeight="80vh"       // 画面いっぱいの高さにする（または '300px' など任意の高さ）
+                gap={2}
+            >
+                <Typography variant="h6">
+                    おすすめの人はいないみたいです...
+                </Typography>
+            </Box>
+        );
+    }
+
     return (
         <>
             <Box display="flex" flexDirection="column" gap={2}>
@@ -147,8 +165,8 @@ export default function RecommendsList() {
                                         {recommend.user.username}
                                     </Typography>
 
-                                    <Typography variant="body2" color="text.secondary">
-                                        類似度: {recommend.similarityScore}
+                                    <Typography variant="body1" color="text.secondary">
+                                        類似度: {(recommend.similarityScore*100).toFixed(2)}%
                                     </Typography>
 
                                     <Typography variant="body2">
@@ -195,7 +213,6 @@ export default function RecommendsList() {
                                         />
                                     </IconButton>
                                 </Box>
-
                             </Box>
                         </CardContent>
                     </Card>
