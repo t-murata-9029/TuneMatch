@@ -165,8 +165,8 @@ export default function RecommendsList() {
                                         {recommend.user.username}
                                     </Typography>
 
-                                    <Typography variant="body2" color="text.secondary">
-                                        類似度: {recommend.similarityScore}
+                                    <Typography variant="body1" color="text.secondary">
+                                        類似度: {(recommend.similarityScore*100).toFixed(2)}%
                                     </Typography>
 
                                     <Typography variant="body2">
@@ -213,7 +213,6 @@ export default function RecommendsList() {
                                         />
                                     </IconButton>
                                 </Box>
-
                             </Box>
                         </CardContent>
                     </Card>
