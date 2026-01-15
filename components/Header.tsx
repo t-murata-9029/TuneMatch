@@ -107,7 +107,7 @@ function Header() {
     },
     {
       title: "message",
-      link: "/matches",
+      link: "/matches/message",
     },
   ]
 
