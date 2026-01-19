@@ -122,7 +122,7 @@ export default function RecommendsList() {
 
         // マッチングオーバーレイコンポーネントを呼び出す
         if (targetUser) {
-            return <MatchOverlay targetUser={targetUser} />;
+            return <MatchOverlay targetUser={targetUser} setIsMatched={setIsMatched} />;
         }
     }
 
