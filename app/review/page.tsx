@@ -91,11 +91,11 @@ export default function ReviewPage() {  // ← async を削除
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {data.trackName}
+                  {data?.trackName}
                 </Typography>
                 <Box sx={{ height: 8 }} />
                 <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
-                  {data.artistName}
+                  {data?.artistName}
                 </Typography>
               </Box>
             </Box>
@@ -132,7 +132,7 @@ export default function ReviewPage() {  // ← async を削除
         </Box>
 
         <Typography variant="h5" component="h2" sx={{ mb: 3, mt: 4, textAlign: 'center' }}>
-          「{data.trackName}」に対してのレビュー
+          「{data?.trackName}」に対してのレビュー
         </Typography>
 
         <Box id="review_list">
