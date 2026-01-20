@@ -108,7 +108,8 @@ export default function ReviewAnalysisPage() {
 
   const [reviewResult, setReviewResult] = useState<aaa>();
 
-  const dataJson = sessionStorage.getItem('selectedItem');
+  const dataJson = "";
+
   const selectMusic = dataJson ? JSON.parse(dataJson) : null;
 
   useEffect(() => {
@@ -116,7 +117,8 @@ export default function ReviewAnalysisPage() {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const reviewStr = sessionStorage.getItem('reviewData');
+    const reviewStr = "";
+
     if (!reviewStr) return;
 
     const reviewData: postReviewState = JSON.parse(reviewStr);
@@ -486,14 +488,6 @@ export default function ReviewAnalysisPage() {
         sentiment_positivity,
         sentiment_negativity,
       }
-
-
-      sessionStorage.removeItem("selectedItem");
-      sessionStorage.removeItem("reviewData");
-      sessionStorage.removeItem("queryData");
-      sessionStorage.removeItem("selectedAlbum");
-      sessionStorage.removeItem("selectedArtist");
-
 
       setReviewResult(reviewData2);
     }

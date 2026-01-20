@@ -1,34 +1,82 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import {
-    useMediaQuery,
     Button,
     TextField,
     Box,
-    NoSsr,
     RadioGroup,
     Radio,
-    Slider,
     FormControl,
     FormHelperText,
+    FormControlLabel,
+    Typography,
+    Card,
+    CardMedia,
+    CardContent,
+    Grid,
 } from '@mui/material';
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
-import React, { useEffect } from 'react';
-import { createTheme } from '@mui/material/styles';
-import { postSearchState } from '@/types/forms/search';
 import { useRouter } from 'next/navigation';
+import { postSearchState } from '@/types/forms/search';
+import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
+import getToken from '@/utils/spotify/getToken';
+import TrackCard from '@/components/TrackCard'; // パスは適宜調整してください
 
-export default function page() {
+type item = {
+    artistId: string;
+    artistName: string;
+    albumId: string;
+    albumName: string;
+    albumImage: string;
+    albumReleaseDate: Timestamp;
+    albumTotalTracks: number;
+    trackId: string;
+    trackName: string;
+    trackNumber: number;
+    durationMs: number
+};
 
+// Spotify API 曲名から取得関数
+async function fetchTracks(query: string): Promise<item[]> {
+
+    console.log('Fetching tracks for query:', query);
+
+    const spotify_access_token = await getToken();
+    const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=10`;
+
+    const result = await fetch(url, {
+        headers: { Authorization: `Bearer ${spotify_access_token}` }
+    });
+
+    const json = await result.json();
+    let items: item[] = [];
+
+    if (json.tracks?.items) {
+        items = json.tracks.items.map((t: any) => ({
+            artistId: t.artists[0].id,
+            artistName: t.artists[0].name,
+            albumId: t.album.id,
+            albumName: t.album.name,
+            albumImage: t.album.images[1]?.url || t.album.images[0]?.url,
+            albumReleaseDate: t.album.release_date,
+            albumTotalTracks: t.album.total_tracks,
+            trackId: t.id,
+            trackName: t.name,
+            trackNumber: t.track_number,
+            durationMs: t.duration_ms,
+        }));
+    }
+
+    return items;
+}
+
+export default function Page() {
     const router = useRouter();
+    const [type, setType] = useState('');
+    const [query, setQuery] = useState('');
+    const [errors, setErrors] = useState({ query: false, type: false });
+    const [tracks, setTracks] = useState<item[]>([]);
 
-    const [type, setType] = React.useState('');
-    const [query, setQuery] = React.useState('');
-    const [errors, setErrors] = React.useState({ query: false, type: false });
-
-    // 🔹 入力や選択時にエラーを消す
     const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setQuery(e.target.value);
         if (errors.query && e.target.value.trim() !== "") {
@@ -43,76 +91,143 @@ export default function page() {
         }
     };
 
-    const handleSubmit = () => {
-        const newErrors = {
-            query: query.trim() === "",
-            type: type === "",
-        };
-        setErrors(newErrors);
+    const handleSubmit = async () => {
+        if (query.trim() === "") {
+            setErrors({ query: true, type: false });
+            return;
+        }
 
-        if (newErrors.query || newErrors.type) return;
+        setErrors({ query: false, type: false });
 
-        const queryData: postSearchState = { type, query };
-        sessionStorage.setItem('queryData', JSON.stringify(queryData));
-
-        if (type === 'track') router.push('/search/track');
-        else if (type === 'album') router.push('/search/album');
-        else router.push('/search/artist');
+        console.log('handleSubmit called with query:', query);
+        const results = await fetchTracks(query);
+        console.log('Fetched results:', results);
+        setTracks(results);
     };
 
-    useEffect(() => {
-        sessionStorage.removeItem("selectedAlbum");
-        sessionStorage.removeItem("selectedArtist");
-    }, []);
+    const handleTrackClick = (trackId: string) => {
+        console.log('Track clicked:', trackId);
+        // ここにトラッククリック時の処理を追加
+    };
 
     return (
-        <NoSsr>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        minHeight: '100vh',
-                        p: 2,
-                    }}
-                >
-                    <FormGroup sx={{ mb: 6 }}>
-                        <FormControl required error={errors.type}>
-                            {errors.type && <FormHelperText>どれかを選択してください</FormHelperText>}
-                            <RadioGroup
-                                row
-                                name="searchType"
-                                value={type}
-                                onChange={handleTypeChange}
-                            >
-                                <FormControlLabel value="artist" control={<Radio />} label="アーティスト" />
-                                <FormControlLabel value="album" control={<Radio />} label="アルバム" />
-                                <FormControlLabel value="track" control={<Radio />} label="曲" />
-                            </RadioGroup>
-                        </FormControl>
-
-                        <Box sx={{ height: 16 }} /> {/* 空白 */}
+        <Box sx={{ height: '116vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* セクション1: 検索ボックスエリア */}
+            <Box
+                sx={{
+                    height: '11vh',
+                    bgcolor: '#f5f5f5',
+                    borderBottom: '2px solid #e0e0e0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    px: 4,
+                }}
+            >
+                <Box sx={{ maxWidth: 600, width: '100%' }}>
+                    <Box sx={{ display: 'flex', gap: 2 }}>
                         <TextField
-                            label="検索文字列"
+                            label="検索"
                             variant="outlined"
+                            size="small"
                             value={query}
                             onChange={handleQueryChange}
                             error={errors.query}
-                            helperText={errors.query ? "検索文字列を入力してください" : ""}
+                            helperText={errors.query ? "入力してください" : ""}
+                            sx={{ flex: 1, minWidth: 200 }}
                         />
 
-                        <Box sx={{ height: 16 }} /> {/* 空白 */}
                         <Button
                             variant="contained"
                             onClick={handleSubmit}
-                            sx={{ width: 'auto', alignSelf: 'flex-end', px: 3, py: 1.5 }}
+                            sx={{ px: 3, py: 1 }}
                         >
                             検索
                         </Button>
-                    </FormGroup>
+                    </Box>
                 </Box>
+            </Box>
 
-        </NoSsr>
+            {/* セクション2: 曲の検索結果 */}
+            <Box
+                sx={{
+                    height: '40vh',
+                    bgcolor: '#ffffff',
+                    borderBottom: '2px solid #e0e0e0',
+                    p: 3,
+                    overflow: 'hidden',
+                }}
+            >
+                <Box sx={{ maxWidth: 1200, mx: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                        曲
+                    </Typography>
+                    <Box sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        flexWrap: 'nowrap',
+                        overflowX: 'auto',
+                        overflowY: 'hidden',
+                        flex: 1,
+                        '&::-webkit-scrollbar': {
+                            height: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                            backgroundColor: '#f1f1f1',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: '#888',
+                            borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                            backgroundColor: '#555',
+                        },
+                    }}>
+                        {tracks.map((track) => (
+                            <TrackCard
+                                key={track.trackId}
+                                trackId={track.trackId}
+                                trackName={track.trackName}
+                                artistName={track.artistName}
+                                albumImage={track.albumImage}
+                                onClick={() => handleTrackClick(track.trackId)}
+                            />
+                        ))}
+                    </Box>
+                </Box>
+            </Box>
+
+            {/* セクション3: アルバム */}
+            <Box
+                sx={{
+                    height: '35vh',
+                    bgcolor: '#fafafa',
+                    borderBottom: '2px solid #e0e0e0',
+                    p: 3,
+                    overflow: 'auto',
+                }}
+            >
+                <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                        アルバム
+                    </Typography>
+                </Box>
+            </Box>
+
+            {/* セクション4: アーティスト */}
+            <Box
+                sx={{
+                    height: '35vh',
+                    bgcolor: '#f5f5f5',
+                    p: 3,
+                    overflow: 'auto',
+                }}
+            >
+                <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                        アーティスト
+                    </Typography>
+                </Box>
+            </Box>
+        </Box>
     );
 }
