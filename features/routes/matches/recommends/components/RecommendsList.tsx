@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase.cliant";
 import { getCurrentUser } from "@/lib/action";
 import { error } from "console";
 import MatchOverlay from "./MatchOverlay";
+import MatchBar from "./MatchBar";
 
 /**
  * おすすめの人を表示するよ
@@ -129,18 +130,21 @@ export default function RecommendsList() {
 
     if (recommendsList?.length == 0) {
         return (
-            <Box
-                display="flex"
-                flexDirection="column"
-                justifyContent="center" // 縦方向の中央揃え
-                alignItems="center"     // 横方向の中央揃え
-                minHeight="80vh"       // 画面いっぱいの高さにする（または '300px' など任意の高さ）
-                gap={2}
-            >
-                <Typography variant="h6">
-                    おすすめの人はいないみたいです...
-                </Typography>
-            </Box>
+            <>
+                <MatchBar />
+                <Box
+                    display="flex"
+                    flexDirection="column"
+                    justifyContent="center" // 縦方向の中央揃え
+                    alignItems="center"     // 横方向の中央揃え
+                    minHeight="80vh"       // 画面いっぱいの高さにする（または '300px' など任意の高さ）
+                    gap={2}
+                >
+                    <Typography variant="h6">
+                        おすすめの人はいないみたいです...
+                    </Typography>
+                </Box>
+            </>
         );
     }
 
@@ -166,7 +170,7 @@ export default function RecommendsList() {
                                     </Typography>
 
                                     <Typography variant="body1" color="text.secondary">
-                                        類似度: {(recommend.similarityScore*100).toFixed(2)}%
+                                        類似度: {(recommend.similarityScore * 100).toFixed(2)}%
                                     </Typography>
 
                                     <Typography variant="body2">

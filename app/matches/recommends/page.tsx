@@ -1,5 +1,5 @@
 
-import RecommendsList from "@/features/routes/matches/components/RecommendsList";
+import RecommendsList from "@/features/routes/matches/recommends/components/RecommendsList";
 
 export default function page() {
 
