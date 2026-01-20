@@ -18,7 +18,7 @@ const labels: { [index: number]: string } = {
 };
 
 export default function ReviewPage() {  // ← async を削除
-  const dataJson = typeof window !== 'undefined' ? sessionStorage.getItem('selectedItem') : null;
+  const dataJson = "";
   const data = dataJson ? JSON.parse(dataJson) : null;
 
   const router = useRouter();
@@ -51,7 +51,6 @@ export default function ReviewPage() {  // ← async を削除
       review: text,
       rating: rating ?? 1,
     };
-    sessionStorage.setItem('reviewData', JSON.stringify(reviewData));
     router.push('/review/analysis');
   };
 
