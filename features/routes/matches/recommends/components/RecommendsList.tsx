@@ -40,65 +40,87 @@ export default function RecommendsList() {
 
     /*--- ユーザーがLike押したときの処理 ---*/
     const handleLike = async (targetId: string, match_percentage: number) => {
-        // DBに登録
-        const { error: insertError } = await supabase.from("swipe_actions").insert({
-            swiper_id: myUserId,
-            swiped_id: targetId,
-            action_type: "LIKE",
-        });
+        try {
 
-        if (insertError) {
-            console.log(insertError)
-            throw new Error("DBに登録しようとしたらエラー起きましたよ。")
-        }
+            // 相手がLIKEしてるか確認
+            const { count, error: getError } = await supabase
+                .from("swipe_actions")
+                .select('*', { count: 'exact', head: true })
+                .eq("swiper_id", targetId)
+                .eq("swiped_id", myUserId)
+                .eq("action_type", "LIKE");
 
-        // 相手がLIKEしてるか確認
-        const { count, error: getError } = await supabase
-            .from("swipe_actions")
-            .select('*', { count: 'exact', head: true })
-            .eq("swiper_id", targetId)
-            .eq("swiped_id", myUserId)
-            .eq("action_type", "LIKE");
-
-        if (getError) {
-            console.log("getERRRR")
-            console.log(getError);
-            console.log(count)
-            throw new Error("DBからデータを取得しようとしたらエラーになりました。")
-        }
-
-        // マッチしたら
-        if (count != null && count > 0) {
-
-            // UUIDの順番を保証する
-            const [user1_id, user2_id] =
-                myUserId < targetId
-                    ? [myUserId, targetId]
-                    : [targetId, myUserId]
-
-            // DBに登録
-            const { error: matchError } = await supabase.from("matches").insert({
-                user1_id: user1_id,
-                user2_id: user2_id,
-                vibe_match_percentage: match_percentage,
-            })
-
-            if (matchError) {
-                console.log(matchError);
-                throw new Error("DBに登録しようとしたらエラーが起きました。")
+            if (getError) {
+                console.log("getERRRR")
+                console.log(getError);
+                console.log(count)
+                throw new Error("DBからデータを取得しようとしたらエラーになりました。")
             }
 
-            setIsMatched(targetId);
+            // マッチしたら
+            if (count != null && count > 0) {
+
+                // 選択したユーザーをリストから消す
+                setRecommendsList(prev =>
+                    prev?.filter(r => r.user.id !== targetId)
+                );
+
+                // UUIDの順番を保証する
+                const [user1_id, user2_id] =
+                    myUserId < targetId
+                        ? [myUserId, targetId]
+                        : [targetId, myUserId]
+
+                // DBに登録
+                const { error: matchError } = await supabase.from("matches").insert({
+                    user1_id: user1_id,
+                    user2_id: user2_id,
+                    vibe_match_percentage: match_percentage,
+                })
+
+                if (matchError) {
+                    console.log(matchError);
+                    throw new Error("DBに登録しようとしたらエラーが起きました。")
+                }
+
+                // 不要になったLikeの情報を消す
+                const { error: deleteError } = await supabase.from("swipe_actions").delete()
+                    .eq("swiper_id", targetId)
+                    .eq("swiped_id", myUserId);
+
+                if (deleteError) {
+                    console.log(deleteError);
+                    throw new Error("マッチした際に、Likeの情報を消そうとしたらエラーが起きました。");
+                }
+
+                setIsMatched(targetId);
+                return;
+            }
+
+            // DBに登録
+            const { error: insertError } = await supabase.from("swipe_actions").insert({
+                swiper_id: myUserId,
+                swiped_id: targetId,
+                action_type: "LIKE",
+            });
+
+            if (insertError) {
+                console.log(insertError)
+                throw new Error("DBに登録しようとしたらエラー起きましたよ。")
+            }
 
             return;
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error("予期せぬエラーが発生しました");
+        } finally {
+            // 選択したユーザーをリストから消す
+            setRecommendsList(prev =>
+                prev?.filter(r => r.user.id !== targetId)
+            );
         }
-
-        // 選択したユーザーをリストから消す
-        setRecommendsList(prev =>
-            prev?.filter(r => r.user.id !== targetId)
-        );
-
-        return;
     };
 
     /*--- ユーザーがDislike押したときの処理 ---*/
