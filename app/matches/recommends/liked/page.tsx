@@ -1,7 +1,9 @@
+import LikedList from "@/features/routes/matches/liked/components/LikedList";
+
 export default function likedPage(){
     return(
         <>
-            <p>there is liked.</p>
+            <LikedList />
         </>
     );
 }

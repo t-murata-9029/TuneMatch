@@ -60,11 +60,6 @@ export default function RecommendsList() {
             // マッチしたら
             if (count != null && count > 0) {
 
-                // 選択したユーザーをリストから消す
-                setRecommendsList(prev =>
-                    prev?.filter(r => r.user.id !== targetId)
-                );
-
                 // UUIDの順番を保証する
                 const [user1_id, user2_id] =
                     myUserId < targetId
@@ -102,6 +97,7 @@ export default function RecommendsList() {
                 swiper_id: myUserId,
                 swiped_id: targetId,
                 action_type: "LIKE",
+                vibe_match_percentage: match_percentage,
             });
 
             if (insertError) {

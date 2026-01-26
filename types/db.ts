@@ -105,4 +105,5 @@ export interface Swipe_actions{
   swiped_id: string;
   action_type: Swipe_action_type;
   action_at?: Date;
+  vibe_match_percentage?: number;
 }
