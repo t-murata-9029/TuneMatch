@@ -172,6 +172,7 @@ export default function RecommendsList() {
 
     return (
         <>
+            <MatchBar />
             <Box display="flex" flexDirection="column" gap={2}>
                 {recommendsList?.map((recommend) => (
                     <Card key={recommend.user.id} sx={{ minWidth: 575, maxWidth: 720, mx: "auto" }} >

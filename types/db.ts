@@ -91,3 +91,18 @@ export interface User_images {
   is_main_profile_image?: boolean;
   uploaded_at?: Date;
 }
+
+/**
+ * Swipe_action用の型
+ * いいねならLIKE、嫌ならSKIPになるよ。
+ */
+export type Swipe_action_type = 'LIKE' | 'SKIP';
+
+
+export interface Swipe_actions{
+  id: number;
+  swiper_id: string;
+  swiped_id: string;
+  action_type: Swipe_action_type;
+  action_at?: Date;
+}
