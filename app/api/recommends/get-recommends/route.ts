@@ -11,11 +11,6 @@ import { NextResponse } from "next/server";
  */
 export async function GET(request: Request) {
 
-    /** TODO
-     * なんでマッチしたか、わからないから、わかるようにする。
-     * https://gemini.google.com/share/8685fd630788
-     */
-
     // requestからuserIdを取得
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

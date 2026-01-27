@@ -14,7 +14,7 @@ export default function Signup() {
         password: '',
         username: '',
         profile_text: '',
-        gender: 'male',
+        gender: 'MALE',
     };
 
     const router = useRouter();
