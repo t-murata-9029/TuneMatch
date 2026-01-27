@@ -5,19 +5,9 @@ import {
     Button,
     TextField,
     Box,
-    RadioGroup,
-    Radio,
-    FormControl,
-    FormHelperText,
-    FormControlLabel,
     Typography,
-    Card,
-    CardMedia,
-    CardContent,
-    Grid,
 } from '@mui/material';
-import { useRouter } from 'next/navigation';
-import { postSearchState } from '@/types/forms/search';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Timestamp } from 'next/dist/server/lib/cache-handlers/types';
 import getToken from '@/utils/spotify/getToken';
 import TrackCard from '@/components/TrackCard';
@@ -36,13 +26,18 @@ type item = {
     durationMs: number
 };
 
-// Spotify API 曲名から取得関数
-async function fetchTracks(query: string): Promise<item[]> {
+type artist = {
+    artistId: string;
+    artistName: string;
+    albumImage: string;
+};
 
-    console.log('Fetching tracks for query:', query);
+// アーティストのトップトラックを取得
+async function fetchArtistTopTracks(artistId: string): Promise<item[]> {
+    console.log('Fetching top tracks for artist:', artistId);
 
     const spotify_access_token = await getToken();
-    const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=10`;
+    const url = `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=JP`;
 
     const result = await fetch(url, {
         headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -51,8 +46,8 @@ async function fetchTracks(query: string): Promise<item[]> {
     const json = await result.json();
     let items: item[] = [];
 
-    if (json.tracks?.items) {
-        items = json.tracks.items.map((t: any) => ({
+    if (json.tracks) {
+        items = json.tracks.slice(0, 10).map((t: any) => ({
             artistId: t.artists[0].id,
             artistName: t.artists[0].name,
             albumId: t.album.id,
@@ -70,13 +65,12 @@ async function fetchTracks(query: string): Promise<item[]> {
     return items;
 }
 
-// Spotify API アルバム取得関数
-async function fetchAlbums(query: string): Promise<item[]> {
-
-    console.log('Fetching albums for query:', query);
+// アーティストのアルバムを取得
+async function fetchArtistAlbums(artistId: string): Promise<item[]> {
+    console.log('Fetching albums for artist:', artistId);
 
     const spotify_access_token = await getToken();
-    const url = `https://api.spotify.com/v1/search?q=${query}&type=album&limit=10`;
+    const url = `https://api.spotify.com/v1/artists/${artistId}/albums?limit=10&market=JP`;
 
     const result = await fetch(url, {
         headers: { Authorization: `Bearer ${spotify_access_token}` }
@@ -85,8 +79,8 @@ async function fetchAlbums(query: string): Promise<item[]> {
     const json = await result.json();
     let items: item[] = [];
 
-    if (json.albums?.items) {
-        items = json.albums.items.map((a: any) => ({
+    if (json.items) {
+        items = json.items.map((a: any) => ({
             artistId: a.artists[0].id,
             artistName: a.artists[0].name,
             albumId: a.id,
@@ -104,157 +98,79 @@ async function fetchAlbums(query: string): Promise<item[]> {
     return items;
 }
 
-// Spotify API アーティスト取得関数
-async function fetchArtists(query: string): Promise<item[]> {
-
-    console.log('Fetching artists for query:', query);
-
-    const spotify_access_token = await getToken();
-    const url = `https://api.spotify.com/v1/search?q=${query}&type=artist&limit=10`;
-
-    const result = await fetch(url, {
-        headers: { Authorization: `Bearer ${spotify_access_token}` }
-    });
-
-    const json = await result.json();
-    let items: item[] = [];
-
-    if (json.artists?.items) {
-        items = json.artists.items.map((ar: any) => ({
-            artistId: ar.id,
-            artistName: ar.name,
-            albumId: '',
-            albumName: '',
-            albumImage: ar.images[1]?.url || ar.images[0]?.url || '',
-            albumReleaseDate: '',
-            albumTotalTracks: 0,
-            trackId: ar.id,
-            trackName: ar.name,
-            trackNumber: 0,
-            durationMs: 0,
-        }));
-    }
-
-    return items;
-}
-
-// Spotify公式プレイリストからトップトラックを取得
-async function fetchTopTracks(): Promise<item[]> {
-    console.log('Fetching top tracks from Global Top 50 playlist');
+// 関連アーティストを取得（検索APIを使用）
+async function fetchRelatedArtists(artistName: string): Promise<artist[]> {
+    console.log('Fetching related artists for:', artistName);
 
     const spotify_access_token = await getToken();
-    // Global Top 50プレイリストID
-    const playlistId = '37i9dQZEVXbMDoHDwVN2tF';
-    const url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=10`;
+    const url = `https://api.spotify.com/v1/search?q=${artistName}&type=artist&limit=10&offset=1`;
 
     try {
         const result = await fetch(url, {
-            headers: { 
-                'Authorization': `Bearer ${spotify_access_token}`,
-                'Content-Type': 'application/json'
-            }
+            headers: { Authorization: `Bearer ${spotify_access_token}` }
         });
 
-        console.log('Playlist API response status:', result.status);
-
         if (!result.ok) {
-            console.error('Playlist API error:', result.status, result.statusText);
-            const errorData = await result.json();
-            console.error('Error details:', errorData);
-            throw new Error(`Playlist API error: ${result.status}`);
+            console.error('Related artists search error:', result.status);
+            return [];
         }
 
         const json = await result.json();
-        let items: item[] = [];
+        let items: artist[] = [];
 
-        if (json.items) {
-            items = json.items.map((item: any) => {
-                const track = item.track;
-                return {
-                    artistId: track.artists[0]?.id || '',
-                    artistName: track.artists[0]?.name || 'Unknown',
-                    albumId: track.album?.id || '',
-                    albumName: track.album?.name || 'Unknown',
-                    albumImage: track.album?.images[1]?.url || track.album?.images[0]?.url || '',
-                    albumReleaseDate: track.album?.release_date || '',
-                    albumTotalTracks: track.album?.total_tracks || 0,
-                    trackId: track.id,
-                    trackName: track.name,
-                    trackNumber: track.track_number || 0,
-                    durationMs: track.duration_ms || 0,
-                };
-            });
+        if (json.artists?.items) {
+            items = json.artists.items.map((ar: any) => ({
+                artistId: ar.id,
+                artistName: ar.name,
+                albumImage: ar.images?.[0]?.url || '',
+            }));
         }
 
-        console.log('Top tracks fetched:', items);
         return items;
     } catch (error) {
-        console.error('Error fetching top tracks:', error);
-        // フォールバック：人気の検索クエリを使用して曲を取得
-        console.log('Falling back to search for popular tracks');
-        try {
-            const popularTracks = await fetchTracks('trending');
-            return popularTracks;
-        } catch (fallbackError) {
-            console.error('Fallback also failed:', fallbackError);
-            return [];
-        }
+        console.error('Error fetching related artists:', error);
+        return [];
     }
 }
 
 export default function Page() {
     const router = useRouter();
-    const [query, setQuery] = useState('');
+    const searchParams = useSearchParams();
     const [errors, setErrors] = useState({ query: false });
-    const [tracks, setTracks] = useState<item[]>([]);
+    const [artistData, setArtistData] = useState<artist | null>(null);
+    const [topTracks, setTopTracks] = useState<item[]>([]);
     const [albums, setAlbums] = useState<item[]>([]);
-    const [artists, setArtists] = useState<item[]>([]);
+    const [relatedArtists, setRelatedArtists] = useState<artist[]>([]);
     const [isScrolled, setIsScrolled] = useState(false);
 
-    // マウント時にデフォルトでトップヒットを取得
+    // URLからアーティスト情報を取得してコンテンツを読み込み
     useEffect(() => {
-        const loadDefaultContent = async () => {
-            const topTracks = await fetchTracks('top tracks Japan');
-            const topAlbums = await fetchAlbums('top albums Japan');
-            const topArtists = await fetchArtists('top artist Japan');
-            setTracks(topTracks);
-            setAlbums(topAlbums);
-            setArtists(topArtists);
-        };
+        const data = searchParams.get('data');
+        if (data) {
+            try {
+                const decoded = JSON.parse(decodeURIComponent(atob(data)));
+                setArtistData(decoded);
 
-        loadDefaultContent();
-    }, []);
+                // アーティストのコンテンツを取得
+                const loadArtistContent = async () => {
+                    const tracks = await fetchArtistTopTracks(decoded.artistId);
+                    const artistAlbums = await fetchArtistAlbums(decoded.artistId);
+                    const related = await fetchRelatedArtists(decoded.artistName);
 
-    const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setQuery(e.target.value);
-        if (errors.query && e.target.value.trim() !== "") {
-            setErrors((prev) => ({ ...prev, query: false }));
+                    setTopTracks(tracks);
+                    setAlbums(artistAlbums);
+                    setRelatedArtists(related);
+                };
+
+                loadArtistContent();
+            } catch (error) {
+                console.error('Error decoding artist data:', error);
+            }
         }
-    };
-
-    const handleSubmit = async () => {
-        if (query.trim() === "") {
-            setErrors({ query: true });
-            return;
-        }
-
-        setErrors({ query: false });
-
-        console.log('handleSubmit called with query:', query);
-        const trackResults = await fetchTracks(query);
-        const albumResults = await fetchAlbums(query);
-        const artistResults = await fetchArtists(query);
-        console.log('Fetched track results:', trackResults);
-        console.log('Fetched album results:', albumResults);
-        console.log('Fetched artist results:', artistResults);
-        setTracks(trackResults);
-        setAlbums(albumResults);
-        setArtists(artistResults);
-    };
+    }, [searchParams]);
 
     const handleTrackClick = (track: item) => {
         console.log('Track clicked:', track.trackId);
-        // JSONをbase64エンコードしてURLに含める
         const encoded = btoa(encodeURIComponent(JSON.stringify(track)));
         router.push(`/review?data=${encoded}`);
     };
@@ -265,7 +181,7 @@ export default function Page() {
         router.push(`/search/album?data=${encoded}`);
     };
 
-    const handleArtistClick = (artist: item) => {
+    const handleArtistClick = (artist: artist) => {
         console.log('Artist clicked:', artist.artistId);
         const encoded = btoa(encodeURIComponent(JSON.stringify(artist)));
         router.push(`/search/artist?data=${encoded}`);
@@ -279,48 +195,44 @@ export default function Page() {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             {/* 固定ヘッダー: 検索ボックスエリア */}
-            <Box
-                sx={{
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1000,
-                    height: '11vh',
-                    bgcolor: isScrolled ? 'rgba(245, 245, 245, 0.85)' : '#f5f5f5',
-                    backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-                    borderBottom: '2px solid #e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    px: 4,
-                    transition: 'all 0.3s ease',
-                }}
-            >
-                <Box sx={{ maxWidth: 600, width: '100%' }}>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <TextField
-                            label="検索"
-                            variant="outlined"
-                            size="small"
-                            value={query}
-                            onChange={handleQueryChange}
-                            error={errors.query}
-                            helperText={errors.query ? "入力してください" : ""}
-                            sx={{ flex: 1, minWidth: 200 }}
-                        />
-
-                        <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ px: 3, py: 1 }}
-                        >
-                            検索
-                        </Button>
-                    </Box>
-                </Box>
-            </Box>
-
             {/* スクロール可能なコンテンツエリア */}
             <Box sx={{ overflowY: 'auto' }} onScroll={handleScroll}>
-                {/* セクション2: 曲の検索結果 */}
+                {/* アーティスト情報 */}
+                {artistData && (
+                    <Box
+                        sx={{
+                            bgcolor: '#ffffff',
+                            borderBottom: '2px solid #e0e0e0',
+                            p: 3,
+                        }}
+                    >
+                        <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', gap: 3, alignItems: 'center' }}>
+                            {artistData.albumImage && (
+                                <Box
+                                    component="img"
+                                    src={artistData.albumImage}
+                                    alt={artistData.artistName}
+                                    sx={{
+                                        width: 150,
+                                        height: 150,
+                                        borderRadius: '8px',
+                                        objectFit: 'cover',
+                                    }}
+                                />
+                            )}
+                            <Box>
+                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                    {artistData.artistName}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    アーティスト
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                )}
+
+                {/* セクション1: トップトラック */}
                 <Box
                     sx={{
                         height: '43vh',
@@ -332,7 +244,7 @@ export default function Page() {
                 >
                     <Box sx={{ maxWidth: 1200, mx: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                            曲
+                            トップトラック
                         </Typography>
                         <Box sx={{ 
                             display: 'flex', 
@@ -355,7 +267,7 @@ export default function Page() {
                                 backgroundColor: '#555',
                             },
                         }}>
-                            {tracks.map((track) => (
+                            {topTracks.map((track) => (
                                 <TrackCard
                                     key={track.trackId}
                                     trackId={track.trackId}
@@ -369,7 +281,7 @@ export default function Page() {
                     </Box>
                 </Box>
 
-                {/* セクション3: アルバム */}
+                {/* セクション2: アルバム */}
                 <Box
                     sx={{
                         height: '43vh',
@@ -418,7 +330,7 @@ export default function Page() {
                     </Box>
                 </Box>
 
-                {/* セクション4: アーティスト */}
+                {/* セクション3: 関連アーティスト */}
                 <Box
                     sx={{
                         height: '43vh',
@@ -429,7 +341,7 @@ export default function Page() {
                 >
                     <Box sx={{ maxWidth: 1200, mx: 'auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
                         <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                            アーティスト
+                            関連アーティスト
                         </Typography>
                         <Box sx={{ 
                             display: 'flex', 
@@ -452,7 +364,7 @@ export default function Page() {
                                 backgroundColor: '#555',
                             },
                         }}>
-                            {artists.map((artist) => (
+                            {relatedArtists.map((artist) => (
                                 <TrackCard
                                     key={artist.artistId}
                                     trackId={artist.artistId}

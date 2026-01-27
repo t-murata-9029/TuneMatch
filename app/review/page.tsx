@@ -1,13 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Box, Button, TextField, Rating, NoSsr, Typography } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { postReviewState } from '../../types/forms/review';
 import { Music_reviews } from '@/types/db';
 import { MusicReviewList } from '@/components/MusicReviewList';
 import { getReviewByTrackId } from '@/utils/supabase/getReviews';
+import { decode } from 'punycode';
+import ArtistLink from '@/components/ArtistLink';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',
@@ -17,24 +19,48 @@ const labels: { [index: number]: string } = {
   5: '毎日きける',
 };
 
-export default function ReviewPage() {  // ← async を削除
-  const dataJson = "";
-  const data = dataJson ? JSON.parse(dataJson) : null;
+type item = {
+  artistId: string;
+  artistName: string;
+  albumId: string;
+  albumName: string;
+  albumImage: string;
+  albumReleaseDate: string; // Timestampではなくstringに
+  albumTotalTracks: number;
+  trackId: string;
+  trackName: string;
+  trackNumber: number;
+  durationMs: number
+};
+export default function ReviewPage() {
+  const searchParams = useSearchParams();
+  const encodedData = searchParams.get('data');
+
+  if (!encodedData) {
+    console.log("No data parameter found in the URL.");
+  }
+
+  const data: item | null = encodedData
+    ? JSON.parse(decodeURIComponent(atob(encodedData))) as item
+    : null;
 
   const router = useRouter();
   const [text, setText] = React.useState('');
   const [rating, setRating] = React.useState<number | null>(2);
   const [hover, setHover] = React.useState(-1);
-  const [reviews, setReviews] = React.useState<Music_reviews[]>([]);  // ← state追加
-  const [loading, setLoading] = React.useState(true);  // ← loading追加
+  const [reviews, setReviews] = React.useState<Music_reviews[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  // useEffectでデータ取得
   React.useEffect(() => {
-    if (!data?.trackId) return;
+    const trackId = data?.trackId;
+    if (!trackId) {
+      setLoading(false);
+      return;
+    }
 
     async function fetchReviews() {
       try {
-        const reviewsData = await getReviewByTrackId(data.trackId);
+        const reviewsData = await getReviewByTrackId(trackId!);
         setReviews(reviewsData);
       } catch (error) {
         console.error('レビュー取得エラー:', error);
@@ -95,7 +121,7 @@ export default function ReviewPage() {  // ← async を削除
                 </Typography>
                 <Box sx={{ height: 8 }} />
                 <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
-                  {data.artistName}
+                  <ArtistLink artistId={data.artistId} artistName={data.artistName} />
                 </Typography>
               </Box>
             </Box>
@@ -131,9 +157,11 @@ export default function ReviewPage() {  // ← async を削除
           </Button>
         </Box>
 
-        <Typography variant="h5" component="h2" sx={{ mb: 3, mt: 4, textAlign: 'center' }}>
-          「{data.trackName}」に対してのレビュー
-        </Typography>
+        {data && (
+          <Typography variant="h5" component="h2" sx={{ mb: 3, mt: 4, textAlign: 'center' }}>
+            「{data.trackName}」に対してのレビュー
+          </Typography>
+        )}
 
         <Box id="review_list">
           {loading ? (

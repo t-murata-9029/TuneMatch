@@ -21,10 +21,14 @@ export default function TrackCard({
             key={trackId} 
             onClick={onClick}
             sx={{ 
-                height: '22vh', 
-                width: 'auto', 
+                height: '26vh', 
+                width: '180px',
                 flexShrink: 0,
-                cursor: 'pointer', 
+                cursor: 'pointer',
+                bgcolor: '#e3f2fd',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '12px 8px 0 8px',
                 '&:hover': { boxShadow: 6 } 
             }}
         >
@@ -32,7 +36,12 @@ export default function TrackCard({
                 component="img"
                 image={albumImage}
                 alt={trackName}
-                sx={{ height: '16vh', width: '16vh', objectFit: 'cover' }}
+                sx={{ 
+                    height: '18vh', 
+                    width: '164px',
+                    objectFit: 'contain',
+                    margin: '0 auto'
+                }}
             />
             <CardContent sx={{ p: 1, height: '6vh', overflow: 'hidden' }}>
                 <Typography
