@@ -32,7 +32,6 @@ export default function RootLayout({
       >
         <ThemeRegistry>
           <Header />
-          <Box sx={{height: "10px"}}></Box>
           {children}
         </ThemeRegistry>
       </body>
