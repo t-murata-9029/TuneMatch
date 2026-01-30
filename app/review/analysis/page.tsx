@@ -7,7 +7,7 @@ import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
 import { constants } from 'buffer';
 import { Box, Button, createTheme, CssBaseline, NoSsr, Typography, useMediaQuery } from '@mui/material';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { userAgent } from 'next/server';
 
@@ -108,20 +108,30 @@ export default function ReviewAnalysisPage() {
 
   const [reviewResult, setReviewResult] = useState<aaa>();
 
-  const dataJson = "";
+  const searchParams = useSearchParams();
 
-  const selectMusic = dataJson ? JSON.parse(dataJson) : null;
+  // URLパラメータからレビューデータを取得
+  const encodedReview = searchParams.get('review');
+  const reviewData: postReviewState | null = encodedReview
+    ? JSON.parse(decodeURIComponent(atob(encodedReview))) as postReviewState
+    : null;
+
+  // URLパラメータから曲情報データを取得
+  const encodedData = searchParams.get('data');
+  const selectMusic = encodedData
+    ? JSON.parse(decodeURIComponent(atob(encodedData)))
+    : null;
 
   useEffect(() => {
 
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const reviewStr = "";
-
-    if (!reviewStr) return;
-
-    const reviewData: postReviewState = JSON.parse(reviewStr);
+    // URLパラメータからレビューデータを取得
+    if (!reviewData) {
+      console.error('レビューデータが見つかりません');
+      return;
+    }
 
     const prompt = `
     以下の文章を1~8の項目は0.00~1.00の100段階で評価してください。
@@ -350,8 +360,8 @@ export default function ReviewAnalysisPage() {
             {
               user_id: user_id,
               track_id: selectMusic.trackId,
-              review_text: reviewData.review,
-              rating: reviewData.rating,
+              review_text: reviewData?.review,
+              rating: reviewData?.rating,
               created_at: new Date().toISOString()
             }
           ])

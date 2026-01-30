@@ -77,9 +77,12 @@ export default function ReviewPage() {
       review: text,
       rating: rating ?? 1,
     };
-    router.push('/review/analysis');
-  };
 
+    // JSONをエンコードしてURLパラメータに追加
+    const encodedReview = btoa(encodeURIComponent(JSON.stringify(reviewData)));
+    const encodedData = btoa(encodeURIComponent(JSON.stringify(data)));
+    router.push(`/review/analysis?review=${encodedReview}&data=${encodedData}`);
+  };
   return (
     <NoSsr>
       <Box
