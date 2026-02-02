@@ -23,24 +23,27 @@ export default function LikedList() {
         getData();
     }, [])
 
-    const handleLike = () => {};
-    const handleDislike = () => {};
+    const handleLike = () => { };
+    const handleDislike = () => { };
 
-    return (
-        <Box>
-            {likedUserList && likedUserList.length > 0 ? (
-                likedUserList.map((user) => (
-                    <UserCard 
-                        user={user.swiper!} 
-                        similarityScore={user.vibe_match_percentage}
-                        onLike={handleLike}
-                        onDislike={handleDislike}
-                    />
-                ))
+    if (likedUserList) {
+        return (
+            <Box>
+                {likedUserList && likedUserList.length > 0 ? (
+                    likedUserList.map((user) => (
+                        <UserCard
+                            user={user.swiper!}
+                            similarityScore={user.vibe_match_percentage}
+                            onLike={handleLike}
+                            onDislike={handleDislike}
+                            key={user.swiper_id}
+                        />
+                    ))
 
-            ) : (
-                <Typography variant="body1">いいねしたユーザーがいません</Typography>
-            )}
-        </Box>
-    );
+                ) : (
+                    <Typography variant="body1">いいねしたユーザーがいません</Typography>
+                )}
+            </Box>
+        );
+    }
 }

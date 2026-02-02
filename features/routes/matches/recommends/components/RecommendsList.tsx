@@ -2,46 +2,42 @@
 
 import { useEffect, useState } from "react"
 import { getRecommendsList } from "../endpoints"
-import { Avatar, Box, Card, CardContent, IconButton, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Recommends } from "../types";
-import ThumbUpOffAltIcon from '@mui/icons-material/ThumbUpOffAlt';
-import ThumbDownOffAltIcon from '@mui/icons-material/ThumbDownOffAlt';
 import { supabase } from "@/lib/supabase.cliant";
 import { getCurrentUser } from "@/lib/action";
-import { error } from "console";
 import MatchOverlay from "./MatchOverlay";
 import MatchBar from "./MatchBar";
+import { UserCard } from "@/components/UserCard";
+import { User } from "@/types/db"; // User型をインポート
 
-/**
- * おすすめの人を表示するよ
- */
 export default function RecommendsList() {
-    const [recommendsList, setRecommendsList] = useState<Recommends[]>();
+    const [recommendsList, setRecommendsList] = useState<Recommends[]>([]);
     const [myUserId, setMyUserId] = useState("");
 
-    // マッチしたか判断するための変数、中身は相手のuserId
+    // マッチした相手のユーザー情報を保持するステートを追加
+    const [matchedUser, setMatchedUser] = useState<User | null>(null);
     const [isMatched, setIsMatched] = useState<string | null>(null);
 
     useEffect(() => {
         const setData = async () => {
-            // おすすめの人のリストを取得
             const list = await getRecommendsList();
-            setRecommendsList(list)
+            setRecommendsList(list || []);
 
-            // 自分のuserIdを取得
             const user = await getCurrentUser();
             if (user?.id) {
-                setMyUserId(user?.id);
+                setMyUserId(user.id);
             }
         }
         setData();
-        console.log(recommendsList)
     }, [])
 
     /*--- ユーザーがLike押したときの処理 ---*/
-    const handleLike = async (targetId: string, match_percentage: number) => {
+    const handleLike = async (targetId: string, match_percentage?: number) => {
+        // リストから対象のユーザー情報をあらかじめ確保しておく
+        const targetData = recommendsList.find(r => r.user.id === targetId);
+        
         try {
-
             // 相手がLIKEしてるか確認
             const { count, error: getError } = await supabase
                 .from("swipe_actions")
@@ -50,49 +46,35 @@ export default function RecommendsList() {
                 .eq("swiped_id", myUserId)
                 .eq("action_type", "LIKE");
 
-            if (getError) {
-                console.log("getERRRR")
-                console.log(getError);
-                console.log(count)
-                throw new Error("DBからデータを取得しようとしたらエラーになりました。")
-            }
+            if (getError) throw new Error("DB取得エラー");
 
-            // マッチしたら
+            // マッチした場合
             if (count != null && count > 0) {
+                const [user1_id, user2_id] = myUserId < targetId 
+                    ? [myUserId, targetId] 
+                    : [targetId, myUserId];
 
-                // UUIDの順番を保証する
-                const [user1_id, user2_id] =
-                    myUserId < targetId
-                        ? [myUserId, targetId]
-                        : [targetId, myUserId]
-
-                // DBに登録
                 const { error: matchError } = await supabase.from("matches").insert({
-                    user1_id: user1_id,
-                    user2_id: user2_id,
+                    user1_id,
+                    user2_id,
                     vibe_match_percentage: match_percentage,
-                })
+                });
 
-                if (matchError) {
-                    console.log(matchError);
-                    throw new Error("DBに登録しようとしたらエラーが起きました。")
-                }
+                if (matchError) throw new Error("Match登録エラー");
 
-                // 不要になったLikeの情報を消す
-                const { error: deleteError } = await supabase.from("swipe_actions").delete()
+                await supabase.from("swipe_actions").delete()
                     .eq("swiper_id", targetId)
                     .eq("swiped_id", myUserId);
 
-                if (deleteError) {
-                    console.log(deleteError);
-                    throw new Error("マッチした際に、Likeの情報を消そうとしたらエラーが起きました。");
+                // リストから消える前に、確保しておいたユーザー情報をセット
+                if (targetData) {
+                    setMatchedUser(targetData.user);
+                    setIsMatched(targetId);
                 }
-
-                setIsMatched(targetId);
                 return;
             }
 
-            // DBに登録
+            // 通常のLIKE登録
             const { error: insertError } = await supabase.from("swipe_actions").insert({
                 swiper_id: myUserId,
                 swiped_id: targetId,
@@ -100,148 +82,64 @@ export default function RecommendsList() {
                 vibe_match_percentage: match_percentage,
             });
 
-            if (insertError) {
-                console.log(insertError)
-                throw new Error("DBに登録しようとしたらエラー起きましたよ。")
-            }
+            if (insertError) throw new Error("LIKE登録エラー");
 
-            return;
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                throw new Error(error.message);
-            }
-            throw new Error("予期せぬエラーが発生しました");
+        } catch (error) {
+            console.error(error);
         } finally {
-            // 選択したユーザーをリストから消す
-            setRecommendsList(prev =>
-                prev?.filter(r => r.user.id !== targetId)
-            );
+            // 最後にリストから除外
+            setRecommendsList(prev => prev.filter(r => r.user.id !== targetId));
         }
     };
 
     /*--- ユーザーがDislike押したときの処理 ---*/
     const handleDislike = async (targetId: string) => {
-        // DBに登録
-        const { error: insertError } = await supabase.from("swipe_actions").insert({
+        await supabase.from("swipe_actions").insert({
             swiper_id: myUserId,
             swiped_id: targetId,
             action_type: "SKIP",
         });
 
-        // 選択したユーザーをリストから消す
-        setRecommendsList(prev =>
-            prev?.filter(r => r.user.id !== targetId)
+        setRecommendsList(prev => prev.filter(r => r.user.id !== targetId));
+    }
+
+    // マッチング時の表示
+    if (isMatched && matchedUser) {
+        return (
+            <MatchOverlay 
+                targetUser={matchedUser} 
+                setIsMatched={(val) => {
+                    setIsMatched(val);
+                    setMatchedUser(null); // 閉じるときに情報をクリア
+                }} 
+            />
         );
     }
 
-
-    if (isMatched) {
-        // recommendsListからマッチしたユーザーを取り出す
-        const targetUser = recommendsList?.filter(r => r.user.id == isMatched)[0].user;
-
-        // マッチングオーバーレイコンポーネントを呼び出す
-        if (targetUser) {
-            return <MatchOverlay targetUser={targetUser} setIsMatched={setIsMatched} />;
-        }
-    }
-
-
-    if (recommendsList?.length == 0) {
+    // リストが空の場合
+    if (recommendsList.length === 0) {
         return (
             <>
                 <MatchBar />
-                <Box
-                    display="flex"
-                    flexDirection="column"
-                    justifyContent="center" // 縦方向の中央揃え
-                    alignItems="center"     // 横方向の中央揃え
-                    minHeight="80vh"       // 画面いっぱいの高さにする（または '300px' など任意の高さ）
-                    gap={2}
-                >
-                    <Typography variant="h6">
-                        おすすめの人はいないみたいです...
-                    </Typography>
+                <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="80vh" gap={2}>
+                    <Typography variant="h6">おすすめの人はいないみたいです...</Typography>
                 </Box>
             </>
         );
     }
 
     return (
-        <>
-            <MatchBar />
-            <Box display="flex" flexDirection="column" gap={2}>
-                {recommendsList?.map((recommend) => (
-                    <Card key={recommend.user.id} sx={{ minWidth: 575, maxWidth: 720, mx: "auto" }} >
-                        <CardContent>
-                            <Box display="flex" alignItems="center" gap={2}>
-
-                                {/* 左：アバター */}
-                                <Avatar
-                                    src={`https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/${recommend.user.id}/${recommend.user.id}`}
-                                    alt={recommend.user.username}
-                                    sx={{ width: 56, height: 56, flexShrink: 0 }}
-                                />
-
-                                {/* 中央：テキスト */}
-                                <Box flexGrow={1}>
-                                    <Typography variant="h6" component="a" href={"/user/" + recommend.user.id}>
-                                        {recommend.user.username}
-                                    </Typography>
-
-                                    <Typography variant="body1" color="text.secondary">
-                                        類似度: {(recommend.similarityScore * 100).toFixed(2)}%
-                                    </Typography>
-
-                                    <Typography variant="body2">
-                                        一致した項目：{recommend.matchReasons.mostSimilarKeys[0]}
-                                    </Typography>
-
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{
-                                            mt: 0.5,
-                                            display: "-webkit-box",
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: "vertical",
-                                            overflow: "hidden",
-                                        }}
-                                    >
-                                        {recommend.user.profile_text}
-                                    </Typography>
-                                </Box>
-
-                                {/* 右：アクション */}
-                                <Box
-                                    display="flex"
-                                    alignItems="center"
-                                    gap={2}
-                                >
-                                    <IconButton
-                                        color="success"
-                                        onClick={() => handleLike(recommend.user.id, recommend.similarityScore)}
-                                    >
-                                        <ThumbUpOffAltIcon
-                                            fontSize="large"
-                                            sx={{ cursor: "pointer", color: "success.main" }}
-                                        />
-                                    </IconButton>
-                                    <IconButton
-                                        color="success"
-                                        onClick={() => handleDislike(recommend.user.id)}
-                                    >
-                                        <ThumbDownOffAltIcon
-                                            fontSize="large"
-                                            sx={{ cursor: "pointer", color: "error.main" }}
-                                        />
-                                    </IconButton>
-                                </Box>
-                            </Box>
-                        </CardContent>
-                    </Card>
-
-                ))}
-            </Box>
-        </>
+        <Box>
+            {recommendsList.map((recommend) => (
+                <UserCard
+                    key={recommend.user.id}
+                    user={recommend.user}
+                    similarityScore={recommend.similarityScore}
+                    matchReasons={recommend.matchReasons}
+                    onLike={handleLike}
+                    onDislike={handleDislike}
+                />
+            ))}
+        </Box>
     );
 }

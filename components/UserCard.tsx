@@ -1,10 +1,12 @@
 import { User } from "@/types/db";
-
+import { Card, CardContent, Box, Avatar, Typography, IconButton } from "@mui/material";
+import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 
 // Propsの定義
 export interface UserCardProps {
   user: User;
-  similarityScore?: number; // 類似度も出さない場合があるならオプショナルに
+  similarityScore?: number;
   matchReasons?: {
     mostSimilarKeys: string[];
   };
@@ -12,57 +14,58 @@ export interface UserCardProps {
   onDislike: (id: string) => void;
 }
 
-import { Card, CardContent, Box, Avatar, Typography, IconButton } from "@mui/material";
-import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-
 /**
  * ユーザーカードコンポーネント
- * LIKEとSKIPのボタン付き
- * @param user ユーザー情報
- * @param similarityScore 類似度スコア
- * @param matchReasons 一致した項目の理由
- * @param onLike LIKEボタンクリック時の処理
- * @param onDislike SKIPボタンクリック時の処理
+ * 検索結果やレコメンド一覧など、汎用的に利用可能
  */
-export const UserCard = ({ 
-  user, 
-  similarityScore, 
-  matchReasons, 
-  onLike, 
-  onDislike 
+export const UserCard = ({
+  user,
+  similarityScore,
+  matchReasons,
+  onLike,
+  onDislike,
 }: UserCardProps) => {
+  // 画像URLの生成（supabaseのストレージ構成に依存）
+  const avatarUrl = `https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/${user.id}/${user.id}`;
+
   return (
     <Card sx={{ minWidth: 575, maxWidth: 720, mx: "auto", mb: 2 }}>
       <CardContent>
         <Box display="flex" alignItems="center" gap={2}>
+          
           {/* 左：アバター */}
           <Avatar
-            src={`https://tpwncberbdmckktfcnpg.supabase.co/storage/v1/object/public/user_images/${user.id}/${user.id}`}
+            src={avatarUrl}
             alt={user.username}
             sx={{ width: 56, height: 56, flexShrink: 0 }}
           />
 
-          {/* 中央：テキスト */}
+          {/* 中央：テキスト情報 */}
           <Box flexGrow={1}>
-            <Typography variant="h6" component="a" href={`/user/${user.id}`} sx={{ textDecoration: 'none', color: 'inherit' }}>
+            <Typography
+              variant="h6"
+              component="a"
+              href={`/user/${user.id}`}
+              sx={{ textDecoration: "none", color: "inherit", "&:hover": { textDecoration: "underline" } }}
+            >
               {user.username}
             </Typography>
 
-            {/* 類似度がある場合のみ表示 */}
+            {/* 類似度スコア：存在する場合のみ表示 */}
             {similarityScore !== undefined && (
               <Typography variant="body1" color="text.secondary">
                 類似度: {(similarityScore * 100).toFixed(2)}%
               </Typography>
             )}
 
-            {/* 一致した項目がある場合のみ表示 */}
-            {matchReasons?.mostSimilarKeys?.[0] && (
+            {/* 一致した項目：配列が存在し、中身がある場合のみ表示 */}
+            {matchReasons?.mostSimilarKeys && matchReasons.mostSimilarKeys.length > 0 && (
               <Typography variant="body2">
                 一致した項目：{matchReasons.mostSimilarKeys[0]}
               </Typography>
             )}
 
+            {/* プロフィール本文：2行で切り捨て */}
             <Typography
               variant="body2"
               color="text.secondary"
@@ -78,15 +81,24 @@ export const UserCard = ({
             </Typography>
           </Box>
 
-          {/* 右：アクション */}
-          <Box display="flex" alignItems="center" gap={2}>
-            <IconButton color="success" onClick={() => onLike(user.id, similarityScore)}>
+          {/* 右：アクションボタン */}
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconButton 
+              color="success" 
+              onClick={() => onLike(user.id, similarityScore)}
+              aria-label="like"
+            >
               <ThumbUpOffAltIcon fontSize="large" />
             </IconButton>
-            <IconButton color="error" onClick={() => onDislike(user.id)}>
+            <IconButton 
+              color="error" 
+              onClick={() => onDislike(user.id)}
+              aria-label="dislike"
+            >
               <ThumbDownOffAltIcon fontSize="large" />
             </IconButton>
           </Box>
+
         </Box>
       </CardContent>
     </Card>
