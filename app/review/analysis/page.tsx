@@ -5,9 +5,10 @@ import { postReviewState } from '../../../types/forms/review';
 import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
+import { useSearchParams } from 'next/navigation';
 import { constants } from 'buffer';
 import { Box, Button, createTheme, CssBaseline, NoSsr, Typography, useMediaQuery } from '@mui/material';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import { userAgent } from 'next/server';
 
@@ -103,13 +104,8 @@ async function calculateAverage(user_id: string) {
 export default function ReviewAnalysisPage() {
 
   const router = useRouter();
-
-  const hasRun = useRef(false);
-
-  const [reviewResult, setReviewResult] = useState<aaa>();
-
   const searchParams = useSearchParams();
-
+  
   // URLパラメータからレビューデータを取得
   const encodedReview = searchParams.get('review');
   const reviewData: postReviewState | null = encodedReview
@@ -121,6 +117,12 @@ export default function ReviewAnalysisPage() {
   const selectMusic = encodedData
     ? JSON.parse(decodeURIComponent(atob(encodedData)))
     : null;
+
+  const hasRun = useRef(false);
+
+  console.log('dashbordからの時取得：', selectMusic);
+
+  const [reviewResult, setReviewResult] = useState<aaa>();
 
   useEffect(() => {
 
@@ -230,13 +232,12 @@ export default function ReviewAnalysisPage() {
       let artistResult = false;
 
       try {
-        const { count } = await supabase
+        const { data } = await supabase
           .from('spotify_artists')
-          .select('*', { count: 'exact', head: true })
-          .eq('id', selectMusic.artistId)
-          .single();
+          .select('id')
+          .eq('id', selectMusic.artistId);
 
-        artistResult = (count ?? 0) > 0;
+        artistResult = (data?.length ?? 0) > 0;
       } catch (err) {
         console.error('アーティスト取得エラー:', err);
       }
@@ -279,13 +280,12 @@ export default function ReviewAnalysisPage() {
       let albumResult = false;
 
       try {
-        const { count } = await supabase
+        const { data } = await supabase
           .from('spotify_album')
-          .select('*', { count: 'exact', head: true })
-          .eq('id', selectMusic.albumId)
-          .single();
+          .select('id')
+          .eq('id', selectMusic.albumId);
 
-        albumResult = (count ?? 0) > 0;
+        albumResult = (data?.length ?? 0) > 0;
       } catch (err) {
         console.error('アルバム取得エラー:', err);
       }
@@ -318,13 +318,12 @@ export default function ReviewAnalysisPage() {
       let tracksResult = false;
 
       try {
-        const { count } = await supabase
+        const { data } = await supabase
           .from('spotify_tracks')
-          .select('*', { count: 'exact', head: true })
-          .eq('id', selectMusic.trackId)
-          .single();
+          .select('id')
+          .eq('id', selectMusic.trackId);
 
-        tracksResult = (count ?? 0) > 0;
+        tracksResult = (data?.length ?? 0) > 0;
       } catch (err) {
         console.error('トラック取得エラー:', err);
       }
@@ -503,7 +502,7 @@ export default function ReviewAnalysisPage() {
     }
 
     callApi();
-  }, []);
+  }, [reviewData]);
 
   const handleSubmit = () => {
     router.push('../../dashboard');

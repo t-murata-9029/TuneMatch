@@ -2,14 +2,14 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Box, Button, TextField, Rating, NoSsr, Typography } from '@mui/material';
+import { Box, Button, TextField, Rating, NoSsr, Typography, CircularProgress } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import { postReviewState } from '../../types/forms/review';
 import { Music_reviews } from '@/types/db';
 import { MusicReviewList } from '@/components/MusicReviewList';
 import { getReviewByTrackId } from '@/utils/supabase/getReviews';
-import { decode } from 'punycode';
 import ArtistLink from '@/components/ArtistLink';
+import { supabase } from '@/lib/supabase.cliant';
 
 const labels: { [index: number]: string } = {
   1: '聞くに値しない',
@@ -25,20 +25,18 @@ type item = {
   albumId: string;
   albumName: string;
   albumImage: string;
-  albumReleaseDate: string; // Timestampではなくstringに
+  albumReleaseDate: string;
   albumTotalTracks: number;
   trackId: string;
   trackName: string;
   trackNumber: number;
   durationMs: number
 };
+
 export default function ReviewPage() {
   const searchParams = useSearchParams();
   const encodedData = searchParams.get('data');
-
-  if (!encodedData) {
-    console.log("No data parameter found in the URL.");
-  }
+  const trackIdParam = searchParams.get('trackId');
 
   const data: item | null = encodedData
     ? JSON.parse(decodeURIComponent(atob(encodedData))) as item
@@ -50,9 +48,95 @@ export default function ReviewPage() {
   const [hover, setHover] = React.useState(-1);
   const [reviews, setReviews] = React.useState<Music_reviews[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [trackData, setTrackData] = React.useState<item | null>(data);
+  const [loadingTrackData, setLoadingTrackData] = React.useState(!data && trackIdParam ? true : false);
+
+  // trackIdからトラック情報を取得
+  React.useEffect(() => {
+    const fetchTrackData = async () => {
+      if (!trackIdParam || data) {
+        setLoadingTrackData(false);
+        return;
+      }
+
+      try {
+        // ① トラックとアルバム情報を取得
+        const { data: trackInfo, error: trackError } = await supabase
+          .from('spotify_tracks')
+          .select(`
+            id,
+            name,
+            track_number,
+            duration_ms,
+            album_id,
+            spotify_album (
+              id,
+              name,
+              image_url,
+              release_date,
+              total_tracks,
+              artist_id
+            )
+          `)
+          .eq('id', trackIdParam)
+          .single();
+
+        if (trackError || !trackInfo) {
+          console.error('トラック取得エラー:', trackError);
+          setLoadingTrackData(false);
+          return;
+        }
+
+        // ② アルバム情報からartist_idを取得
+        const album = trackInfo.spotify_album as any;
+        const artistId = album?.artist_id;
+
+        if (!artistId) {
+          console.error('アーティストIDが見つかりません');
+          setLoadingTrackData(false);
+          return;
+        }
+
+        // ③ アーティスト情報を別途取得
+        const { data: artistInfo, error: artistError } = await supabase
+          .from('spotify_artists')
+          .select('id, name')
+          .eq('id', artistId)
+          .single();
+
+        if (artistError || !artistInfo) {
+          console.error('アーティスト取得エラー:', artistError);
+          setLoadingTrackData(false);
+          return;
+        }
+
+        const formattedData: item = {
+          artistId: artistInfo.id,
+          artistName: artistInfo.name,
+          albumId: album?.id || '',
+          albumName: album?.name || '',
+          albumImage: album?.image_url || '',
+          albumReleaseDate: album?.release_date || '',
+          albumTotalTracks: album?.total_tracks || 0,
+          trackId: trackInfo.id,
+          trackName: trackInfo.name,
+          trackNumber: trackInfo.track_number,
+          durationMs: trackInfo.duration_ms,
+        };
+
+        setTrackData(formattedData);
+        setLoadingTrackData(false);
+      } catch (err) {
+        console.error('トラック情報取得エラー:', err);
+        setLoadingTrackData(false);
+      }
+    };
+
+    fetchTrackData();
+  }, [trackIdParam, data]);
 
   React.useEffect(() => {
-    const trackId = data?.trackId;
+    const trackId = trackData?.trackId;
     if (!trackId) {
       setLoading(false);
       return;
@@ -70,7 +154,7 @@ export default function ReviewPage() {
     }
 
     fetchReviews();
-  }, [data?.trackId]);
+  }, [trackData?.trackId]);
 
   const handleSubmit = () => {
     const reviewData: postReviewState = {
@@ -78,11 +162,21 @@ export default function ReviewPage() {
       rating: rating ?? 1,
     };
 
-    // JSONをエンコードしてURLパラメータに追加
     const encodedReview = btoa(encodeURIComponent(JSON.stringify(reviewData)));
-    const encodedData = btoa(encodeURIComponent(JSON.stringify(data)));
-    router.push(`/review/analysis?review=${encodedReview}&data=${encodedData}`);
+    const encodedTrackData = btoa(encodeURIComponent(JSON.stringify(trackData)));
+    router.push(`/review/analysis?review=${encodedReview}&data=${encodedTrackData}`);
   };
+
+  if (loadingTrackData) {
+    return (
+      <NoSsr>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </NoSsr>
+    );
+  }
+
   return (
     <NoSsr>
       <Box
@@ -100,7 +194,7 @@ export default function ReviewPage() {
             {'レビュー投稿画面'}
           </Typography>
 
-          {data && (
+          {trackData && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <Box
                 sx={(theme) => ({
@@ -113,18 +207,18 @@ export default function ReviewPage() {
                 })}
               >
                 <img
-                  src={data.albumImage || '/noimage.png'}
+                  src={trackData.albumImage || '/noimage.png'}
                   alt="album image"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {data.trackName}
+                  {trackData.trackName}
                 </Typography>
                 <Box sx={{ height: 8 }} />
                 <Typography variant="subtitle2" fontWeight="bold" color="text.secondary">
-                  <ArtistLink artistId={data.artistId} artistName={data.artistName} />
+                  <ArtistLink artistId={trackData.artistId} artistName={trackData.artistName} />
                 </Typography>
               </Box>
             </Box>
@@ -160,9 +254,9 @@ export default function ReviewPage() {
           </Button>
         </Box>
 
-        {data && (
+        {trackData && (
           <Typography variant="h5" component="h2" sx={{ mb: 3, mt: 4, textAlign: 'center' }}>
-            「{data.trackName}」に対してのレビュー
+            「{trackData.trackName}」に対してのレビュー
           </Typography>
         )}
 

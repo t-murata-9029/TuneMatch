@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase.cliant";
 import { getCurrentUser } from "@/lib/action";
 import { User } from "@supabase/supabase-js";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 
 type MatchData = {
@@ -44,6 +44,7 @@ export default function ChatPage() {
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const updateLatestMessage = useCallback((newMessage: any) => {
         setAllItems((prev) =>
@@ -146,14 +147,6 @@ export default function ChatPage() {
     // 初期ロード
     useEffect(() => {
         const init = async () => {
-            // sessionStorageからの自動選択を削除
-            // const raw = sessionStorage.getItem("MessageRecipient");
-            // if (raw) {
-            //     const data = JSON.parse(raw);
-            //     setMatchData(data);
-            //     setSelectedMatchId(String(data.matchesId));
-            // }
-
             const user = await getCurrentUser();
             setUserData(user);
 
@@ -161,6 +154,22 @@ export default function ChatPage() {
         };
         init();
     }, []);
+
+    // URLのqueryパラメータからmatchIdを取得して自動選択
+    useEffect(() => {
+        const matchIdParam = searchParams.get('matchId');
+        if (matchIdParam && allItems.length > 0) {
+            const selectedItem = allItems.find(item => String(item.matchesId) === matchIdParam);
+            if (selectedItem) {
+                setMatchData({
+                    matchesId: selectedItem.matchesId,
+                    partnerId: selectedItem.partnerId,
+                    partnerName: selectedItem.partnerName,
+                });
+                setSelectedMatchId(matchIdParam);
+            }
+        }
+    }, [searchParams, allItems]);
 
     // userData と matchData 揃ったらメッセージ取得
     useEffect(() => {

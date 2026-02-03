@@ -302,6 +302,11 @@ export default function Page() {
                             size="small"
                             value={query}
                             onChange={handleQueryChange}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleSubmit();
+                                }
+                            }}
                             error={errors.query}
                             helperText={errors.query ? "入力してください" : ""}
                             sx={{ flex: 1, minWidth: 200 }}
