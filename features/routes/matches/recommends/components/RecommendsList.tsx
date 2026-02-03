@@ -7,7 +7,6 @@ import { Recommends } from "../types";
 import { supabase } from "@/lib/supabase.cliant";
 import { getCurrentUser } from "@/lib/action";
 import MatchOverlay from "./MatchOverlay";
-import MatchBar from "./MatchBar";
 import { UserCard } from "@/components/UserCard";
 import { User } from "@/types/db"; // User型をインポート
 
@@ -93,11 +92,12 @@ export default function RecommendsList() {
     };
 
     /*--- ユーザーがDislike押したときの処理 ---*/
-    const handleDislike = async (targetId: string) => {
+    const handleDislike = async (targetId: string, match_percentage?: number) => {
         await supabase.from("swipe_actions").insert({
             swiper_id: myUserId,
             swiped_id: targetId,
             action_type: "SKIP",
+            vibe_match_percentage: match_percentage,
         });
 
         setRecommendsList(prev => prev.filter(r => r.user.id !== targetId));
@@ -117,10 +117,9 @@ export default function RecommendsList() {
     }
 
     // リストが空の場合
-    if (recommendsList.length === 0) {
+    if (recommendsList.length == 0) {
         return (
             <>
-                <MatchBar />
                 <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="80vh" gap={2}>
                     <Typography variant="h6">おすすめの人はいないみたいです...</Typography>
                 </Box>
