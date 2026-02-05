@@ -6,26 +6,14 @@ import { supabase } from '../../../lib/supabase.cliant';
 import { getCurrentUser } from '@/lib/action';
 import getToken from '@/utils/spotify/getToken';
 import { useSearchParams } from 'next/navigation';
-import { constants } from 'buffer';
-import { Box, Button, createTheme, CssBaseline, NoSsr, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, CssBaseline, NoSsr, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-import { userAgent } from 'next/server';
-
-//表示するデータ用
-interface aaa {
-  focus_rhythm?: number,
-  focus_melody?: number,
-  focus_lyric?: number,
-  sentiment_positivity?: number,
-  sentiment_negativity?: number,
-}
+import { RadarChart } from '@mui/x-charts';
+import ArtistLink from '@/components/ArtistLink';
 
 async function calculateAverage(user_id: string) {
-
-  // 各数値化項目全権取得
   try {
-
     const { data: reviews, error: reviewError } = await supabase
       .from("music_reviews")
       .select("id")
@@ -50,9 +38,7 @@ async function calculateAverage(user_id: string) {
     };
 
     try {
-      // reviewId をぶん回す場合の例
       for (const reviewId of reviewIds) {
-
         const { data: rowData, error } = await supabase
           .from("ai_analysis_results")
           .select(
@@ -65,12 +51,8 @@ async function calculateAverage(user_id: string) {
           continue;
         }
 
-        // rowData は配列で返る
         if (rowData && rowData.length > 0) {
-
           const rowScore = rowData[0] as Record<string, number>;
-
-          // 合計計算（string index のエラーはもう出ない）
           for (const key of Object.keys(rowScore)) {
             totalScore[key] = (totalScore[key] || 0) + rowScore[key];
           }
@@ -79,10 +61,8 @@ async function calculateAverage(user_id: string) {
 
       console.log("分析数値全権取得結果", totalScore);
 
-      const scoreKeys = Object.keys(totalScore); // ← これでOK
-
+      const scoreKeys = Object.keys(totalScore);
       const reviewCount = reviewIds.length;
-
       let averageScore: Record<string, number> = {};
 
       for (const key of scoreKeys) {
@@ -90,7 +70,6 @@ async function calculateAverage(user_id: string) {
       }
 
       console.log("平均値:", averageScore);
-
       return averageScore;
 
     } catch (error) {
@@ -105,31 +84,27 @@ export default function ReviewAnalysisPage() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // URLパラメータからレビューデータを取得
+
   const encodedReview = searchParams.get('review');
   const reviewData: postReviewState | null = encodedReview
     ? JSON.parse(decodeURIComponent(atob(encodedReview))) as postReviewState
     : null;
 
-  // URLパラメータから曲情報データを取得
   const encodedData = searchParams.get('data');
   const selectMusic = encodedData
     ? JSON.parse(decodeURIComponent(atob(encodedData)))
     : null;
 
   const hasRun = useRef(false);
+  const [trackData, setTrackData] = React.useState<any | null>(selectMusic);
+  const [seriesData, setSeriesData] = useState<any[]>([]);
 
   console.log('dashbordからの時取得：', selectMusic);
 
-  const [reviewResult, setReviewResult] = useState<aaa>();
-
   useEffect(() => {
-
     if (hasRun.current) return;
     hasRun.current = true;
 
-    // URLパラメータからレビューデータを取得
     if (!reviewData) {
       console.error('レビューデータが見つかりません');
       return;
@@ -179,7 +154,6 @@ export default function ReviewAnalysisPage() {
     '文字列'
   ]
 }
-    
     `
 
     async function callApi() {
@@ -193,33 +167,45 @@ export default function ReviewAnalysisPage() {
       const gemini_data = await res.json();
 
       console.log("res", res);
-
       console.log(gemini_data);
 
       const raw = gemini_data.text;
-
-      // 「```json」と「```」を除去
       const clean = raw.replace(/```json|```/g, '').trim();
-
-      // JSON としてパース
       const parsed = JSON.parse(clean);
 
-      // こうすればOK
-      const focus_rhythm = parsed.rhythm;                    // 0.90
-      const focus_melody = parsed.melody;                    // 0.85
-      const focus_lyric = parsed.lyric;                      // 0.20
-      const focus_production = parsed.production;            // 0.50
-      const emotional_intensity = parsed.intensity;          // 0.80
-      const sentiment_positivity = parsed.sentiment_positivity;  // 0.95
-      const sentiment_negativity = parsed.sentiment_negativity;  // 0.05
-      const detail_level = parsed.detail_level;              // 0.10
-      const extracted_genres = parsed.extracted_genres;      // []
-      const extracted_moods = parsed.extracted_moods;        // ["ライブで盛り上がる"]
-      const extracted_keywords = parsed.extracted_keywords;  // ["いい曲"]
+      const focus_rhythm = parsed.rhythm;
+      const focus_melody = parsed.melody;
+      const focus_lyric = parsed.lyric;
+      const focus_production = parsed.production;
+      const emotional_intensity = parsed.intensity;
+      const sentiment_positivity = parsed.sentiment_positivity;
+      const sentiment_negativity = parsed.sentiment_negativity;
+      const detail_level = parsed.detail_level;
+      const extracted_genres = parsed.extracted_genres;
+      const extracted_moods = parsed.extracted_moods;
+      const extracted_keywords = parsed.extracted_keywords;
+
+      const reviewRederData = [
+        focus_rhythm,
+        focus_melody,
+        focus_lyric,
+        focus_production,
+        emotional_intensity,
+        sentiment_positivity,
+        sentiment_negativity
+      ];
+
+      const newSeriesData = [{
+        data: reviewRederData,
+        color: '#FF69B4',
+        fillOpacity: 0.6,
+        area: true
+      }];
+
+      setSeriesData(newSeriesData);
 
       let reviewId;
 
-      // userData取得
       const userData = await getCurrentUser();
 
       if (userData == null) {
@@ -228,7 +214,7 @@ export default function ReviewAnalysisPage() {
 
       const user_id = userData.id;
 
-      //アーティスト登録されているかチェック////////////////////////////////
+      //アーティスト登録されているかチェック
       let artistResult = false;
 
       try {
@@ -242,11 +228,8 @@ export default function ReviewAnalysisPage() {
         console.error('アーティスト取得エラー:', err);
       }
 
-      //アーティスト登録されていなかった場合
       if (!artistResult) {
-
         const spotify_access_token = await getToken();
-
         const url = `https://api.spotify.com/v1/artists/${selectMusic.artistId}`;
 
         const result = await fetch(url, {
@@ -268,15 +251,12 @@ export default function ReviewAnalysisPage() {
                 genres: genres
               }
             ])
-
         } catch (err) {
           console.error('アーティスト登録時エラー：', err);
         }
       }
-      ///////////////////////////////////////////////////////////////////
 
-      //album登録されているかチェック//////////////////////////////////////
-
+      //album登録されているかチェック
       let albumResult = false;
 
       try {
@@ -290,9 +270,7 @@ export default function ReviewAnalysisPage() {
         console.error('アルバム取得エラー:', err);
       }
 
-      //アルバム登録されていなかった場合
       if (!albumResult) {
-
         try {
           await supabase
             .from('spotify_album')
@@ -306,15 +284,12 @@ export default function ReviewAnalysisPage() {
                 artist_id: selectMusic.artistId
               }
             ])
-
         } catch (err) {
           console.error('アルバム登録時エラー：', err);
         }
       }
-      ///////////////////////////////////////////////////////////////////
 
-      //tracks登録されているかチェック//////////////////////////////////////
-
+      //tracks登録されているかチェック
       let tracksResult = false;
 
       try {
@@ -328,9 +303,7 @@ export default function ReviewAnalysisPage() {
         console.error('トラック取得エラー:', err);
       }
 
-      //トラック登録されていなかった場合
       if (!tracksResult) {
-
         try {
           await supabase
             .from('spotify_tracks')
@@ -343,16 +316,13 @@ export default function ReviewAnalysisPage() {
                 duration_ms: selectMusic.durationMs,
               }
             ])
-
         } catch (err) {
           console.error('トラック登録時エラー：', err);
         }
       }
-      ///////////////////////////////////////////////////////////////////
 
       //music_reviews登録
       try {
-
         const { data: responseData, error } = await supabase
           .from('music_reviews')
           .insert([
@@ -368,14 +338,12 @@ export default function ReviewAnalysisPage() {
         if (error) console.error('Supabase insert error music_reviews', error);
         else console.log(responseData);
         reviewId = responseData![0].id;
-
       } catch (err) {
         console.error('Supabase insert failed music_reviews', err);
       }
 
       // レビュー分析された数値の登録
       try {
-
         const { data: responseData, error } = await supabase
           .from('ai_analysis_results')
           .insert([
@@ -424,11 +392,10 @@ export default function ReviewAnalysisPage() {
           "ai_vibe_score_detail_level"
         ] as const
 
-        // true/false フラグ生成
         zeroFlags = Object.fromEntries(
           scoreKeys.map((key) => [
             key,
-            Number(data[key]) === 0 // 0.00にも対応
+            Number(data[key]) === 0
           ])
         )
 
@@ -442,13 +409,9 @@ export default function ReviewAnalysisPage() {
 
       let averageScore;
 
-      // usersテーブル項目に数値が登録されていた場合
       if (!allZero) {
-
         averageScore = await calculateAverage(user_id);
-
       } else {
-
         averageScore = {
           focus_rhythm,
           focus_melody,
@@ -459,12 +422,10 @@ export default function ReviewAnalysisPage() {
           sentiment_negativity,
           detail_level
         };
-
       }
 
       // usersテーブル分析数値項目更新
       try {
-
         const { data, error } = await supabase
           .from("users")
           .update({
@@ -477,28 +438,16 @@ export default function ReviewAnalysisPage() {
             ai_vibe_score_negativity: averageScore?.sentiment_negativity,
             ai_vibe_score_detail_level: averageScore?.detail_level,
           })
-          .eq("id", user_id); // ← 更新対象
+          .eq("id", user_id);
 
         if (error) {
           console.error("スコアUPDATEエラー:", error);
         } else {
           console.log("UPDATE成功:", data);
         }
-
       } catch (error) {
         console.error("usersテーブルupdate時エラー：", error);
       }
-
-      // ここから下のコード仮で表示など
-      const reviewData2: aaa = {
-        focus_rhythm,
-        focus_melody,
-        focus_lyric,
-        sentiment_positivity,
-        sentiment_negativity,
-      }
-
-      setReviewResult(reviewData2);
     }
 
     callApi();
@@ -518,27 +467,88 @@ export default function ReviewAnalysisPage() {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          p: 2,
+          p: 3,
+          bgcolor: '#fafafa',
         }}
       >
-        <div style={{ padding: 20 }}>
-          <h1>受け取り画面</h1>
-          <Typography> 歌詞：{reviewResult?.focus_lyric}</Typography>
-          <Typography> メロディー：{reviewResult?.focus_melody}</Typography>
-          <Typography> リズム：{reviewResult?.focus_rhythm}</Typography>
-          <Typography> ポジティブ：{reviewResult?.sentiment_positivity}</Typography>
-          <Typography> ネガティブ：{reviewResult?.sentiment_negativity}</Typography>
-        </div>
+        <Typography variant="h5" gutterBottom sx={{ mb: 4, fontWeight: 'bold', }}>
+          {'あなたのレビュー結果'}
+        </Typography>
 
-        <Button
-          variant="outlined"
-          onClick={handleSubmit}
-          sx={{ width: 'auto', px: 3, py: 1.5 }}
-        >
-          ダッシュボード
-        </Button>
-      </Box>
-    </NoSsr>
+        {seriesData.length > 0 && (
+          <Box sx={{
+            width: '100%',
+            maxWidth: 700,
+            display: 'flex',
+            justifyContent: 'center',
+            bgcolor: '#fff',
+            borderRadius: 3,
+            p: 4,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            mb: 5
+          }}>
+            <RadarChart
+              width={650}
+              height={600}
+              margin={{ top: 50, right: 100, left: 100, bottom: 50 }}
+              series={seriesData}
+              radar={{
+                metrics: [
+                  { name: 'リズム', max: 1 },
+                  { name: 'メロディ', max: 1 },
+                  { name: 'リリック', max: 1 },
+                  { name: 'プロダクション', max: 1 },
+                  { name: 'エモーション', max: 1 },
+                  { name: 'ポジティブ', max: 1 },
+                  { name: 'ネガティブ', max: 1 },
+                ]
+              }}
+            />
+          </Box>
+        )}
 
+        {/* レビュー内容セクション */}
+        {reviewData && (
+          <Box sx={{
+            width: '100%',
+            maxWidth: 700,
+            mb: 5,
+            bgcolor: '#fff',
+            borderRadius: 3,
+            p: 3,
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+            border: '2px solid #FF69B4'
+          }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#FF69B4', textTransform: 'uppercase', fontSize: '0.85rem' }}>
+                📝 あなたのレビュー
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                ⭐{reviewData.rating}
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ color: '#333', lineHeight: 1.6 }}>
+              {reviewData.review}
+            </Typography>
+          </Box>
+        )}
+
+      <Button
+        variant="contained"
+        onClick={handleSubmit}
+        sx={{
+          width: 'auto',
+          px: 6,
+          py: 1.8,
+          fontSize: '1rem',
+          fontWeight: 'bold',
+          textTransform: 'none',
+          borderRadius: 2
+        }}
+      >
+        ダッシュボードへ
+      </Button>
+    </Box>
+    </NoSsr >
   );
 }
