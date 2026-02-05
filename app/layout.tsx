@@ -32,8 +32,9 @@ export default function RootLayout({
       >
         <ThemeRegistry>
           <Header />
-          <Box sx={{height: "10px"}}></Box>
+          <Box sx={{height: "10px", paddingTop: "10px"}}>
           {children}
+          </Box>
         </ThemeRegistry>
       </body>
     </html>
