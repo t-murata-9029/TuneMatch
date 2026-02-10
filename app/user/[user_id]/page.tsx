@@ -134,8 +134,8 @@ export default async function PostPage({
 
         {/* プロフィール画像アップロードリンク (マイページのみ) */}
         {isMypage && (
-          <Link href={'#'} variant="body2" display="block" sx={{ textAlign: 'right', mb: 2 }}>
-            プロフィール画像をアップロードする
+          <Link href={'/setting'} variant="body2" display="block" sx={{ textAlign: 'right', mb: 2 }}>
+            プロフィール情報を編集する
           </Link>
         )}
 
